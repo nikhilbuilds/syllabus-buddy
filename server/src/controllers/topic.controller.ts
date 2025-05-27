@@ -27,19 +27,20 @@ export const parseTopics = async (req: Request, res: Response) => {
   }
 
   try {
-    const existingTopics = await topicRepo.find({
-      where: { syllabus: { id: syllabusId } },
-      order: { dayIndex: "ASC" },
-    });
+    // const existingTopics = await topicRepo.find({
+    //   where: { syllabus: { id: syllabusId } },
+    //   order: { dayIndex: "ASC" },
+    // });
 
-    if (existingTopics.length > 0) {
-      res
-        .status(200)
-        .json({ count: existingTopics.length, topics: existingTopics });
-      return;
-    }
+    // if (existingTopics.length > 0) {
+    //   res
+    //     .status(200)
+    //     .json({ count: existingTopics.length, topics: existingTopics });
+    //   return;
+    // }
 
     const parsedTopics = await extractTopicsFromSyllabus(syllabus.rawText);
+    console.log(parsedTopics);
 
     let dayIndex = 1;
     const topics = parsedTopics.map((t: any) =>

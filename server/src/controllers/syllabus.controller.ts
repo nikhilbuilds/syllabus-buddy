@@ -11,6 +11,8 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const file = req.file;
 
+  console.log(req);
+
   if (!file) {
     res.status(400).json({ error: "No file uploaded" });
     return;
@@ -32,6 +34,8 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
       return;
     }
 
+    console.log("rawText", rawText);
+
     const syllabus = syllabusRepo.create({
       title,
       rawText,
@@ -48,6 +52,90 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
   } catch (err) {
     console.error("Upload error:", err);
     res.status(500).json({ error: "Failed to upload syllabus" });
+    return;
+  }
+};
+
+export const getSyllabus = async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+  const syllabus = await syllabusRepo.find({
+    where: { user: { id: userId } },
+    select: { id: true, title: true },
+  });
+  res.json(syllabus);
+  return;
+};
+
+export const deleteSyllabus = async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+  const syllabusId = parseInt(req.params.id);
+
+  try {
+    const result = await syllabusRepo.delete({
+      id: syllabusId,
+      user: { id: userId },
+    });
+
+    if (result.affected === 0) {
+      res.status(404).json({ error: "Syllabus not found" });
+      return;
+    }
+
+    res.status(200).json({ message: "Syllabus deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete syllabus" });
+    return;
+  }
+};
+
+export const renameSyllabus = async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+  const syllabusId = parseInt(req.params.id);
+  const { title } = req.body;
+
+  try {
+    const result = await syllabusRepo.update(
+      { id: syllabusId, user: { id: userId } },
+      { title }
+    );
+
+    if (result.affected === 0) {
+      res.status(404).json({ error: "Syllabus not found" });
+      return;
+    }
+
+    res.status(200).json({ message: "Syllabus renamed successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to rename syllabus" });
+    return;
+  }
+};
+
+export const getSyllabusById = async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+  const syllabusId = parseInt(req.params.id);
+
+  try {
+    const syllabus = await syllabusRepo.findOne({
+      where: {
+        id: syllabusId,
+        user: { id: userId },
+      },
+      select: {
+        id: true,
+        title: true,
+        rawText: true,
+      },
+    });
+
+    if (!syllabus) {
+      res.status(404).json({ error: "Syllabus not found" });
+      return;
+    }
+
+    res.json(syllabus);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch syllabus" });
     return;
   }
 };

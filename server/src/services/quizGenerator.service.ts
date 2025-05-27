@@ -1,13 +1,16 @@
 import { openai } from "../config/openai";
 
+// Use the following syllabus context if relevant:
+// "${syllabusContext}"
+
 export const generateQuizForTopic = async (
   topicTitle: string,
   syllabusContext?: string
 ) => {
+  console.log("topicTitle", topicTitle);
+  console.log("syllabusContext", syllabusContext);
   const prompt = `
 Generate 3 multiple-choice questions for the topic: "${topicTitle}".
-Use the following syllabus context if relevant:
-"${syllabusContext}"
 
 Return the output in this exact JSON format:
 [
@@ -39,8 +42,10 @@ Return the output in this exact JSON format:
   const content = response.choices[0].message?.content || "[]";
 
   try {
+    console.log({ content });
     return JSON.parse(content);
   } catch (err) {
+    console.log("err", err);
     throw new Error("Failed to parse quiz from OpenAI response.");
   }
 };

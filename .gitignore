@@ -45,3 +45,6 @@ node_modules/
 ./tsbuildinfo
 
 ./app-example
+
+server/uploads/*
+!server/uploads/.gitkeep

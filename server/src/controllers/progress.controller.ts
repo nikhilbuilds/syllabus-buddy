@@ -58,7 +58,6 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
   const score = correct;
   const totalQuestions = questions.length;
 
-  console.log({ user, topic, quiz });
   const existing = await progressRepo.findOne({
     where: {
       user: Equal(user.id),
@@ -69,8 +68,8 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
 
   if (existing) {
     res
-      .status(400)
-      .json({ error: "Quiz already attempted", score, totalQuestions });
+      .status(200)
+      .json({ message: "Quiz already attempted", score, totalQuestions });
     return;
   }
 
@@ -85,7 +84,7 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
 
   await progressRepo.save(progress);
 
-  res.status(200).json({ message: "Quiz submitted", score, totalQuestions });
+  res.status(200).json({ message: "Quiz Complete!", score, totalQuestions });
   return;
 };
 

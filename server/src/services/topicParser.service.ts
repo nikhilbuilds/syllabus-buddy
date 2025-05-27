@@ -1,6 +1,7 @@
 import { openai } from "../config/openai";
 
 export const extractTopicsFromSyllabus = async (rawText: string) => {
+  console.log("rawText", rawText);
   const systemPrompt = `You are a syllabus parser. Given a messy or structured syllabus, extract a list of clear topics or units. Respond only in JSON format like:
 [
   { "title": "Introduction to AI" },

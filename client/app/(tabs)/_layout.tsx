@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { FontAwesome } from "@expo/vector-icons";
 
 export default function TabLayout() {
   return (
@@ -32,6 +33,15 @@ export default function TabLayout() {
               color={color}
               size={24}
             />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="syllabus"
+        options={{
+          title: "Syllabus",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome name="file-pdf-o" size={24} color={color} />
           ),
         }}
       />

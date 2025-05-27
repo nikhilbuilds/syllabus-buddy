@@ -26,6 +26,9 @@ export class Syllabus {
   @JoinColumn({ name: "user_id" })
   user!: User;
 
+  @Column({ nullable: true })
+  deletedAt!: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 }

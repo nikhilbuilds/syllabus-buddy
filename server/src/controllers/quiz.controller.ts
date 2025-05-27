@@ -4,10 +4,13 @@ import { Topic } from "../models/Topic";
 import { Quiz } from "../models/Quiz";
 import { QuizQuestion } from "../models/QuizQuestion";
 import { generateQuizForTopic } from "../services/quizGenerator.service";
+import { Equal } from "typeorm";
+import { UserProgress } from "../models/UserProgress";
 
 const topicRepo = AppDataSource.getRepository(Topic);
 const quizRepo = AppDataSource.getRepository(Quiz);
 const questionRepo = AppDataSource.getRepository(QuizQuestion);
+const progressRepo = AppDataSource.getRepository(UserProgress);
 
 //TODO: APIS Needed -
 // 1. Generate new quiz - with premium model
@@ -33,6 +36,23 @@ export const generateQuiz = async (req: Request, res: Response) => {
     });
 
     if (existingQuiz) {
+      // const attempted = await progressRepo.findOne({
+      //   where: {
+      //     user: Equal(userId),
+      //     topic: Equal(topic.id),
+      //     quiz: Equal(existingQuiz.id),
+      //   },
+      // });
+
+      // if (attempted?.id) {
+      //   res.status(200).json({
+      //     message: "Quiz already attempted",
+      //     quizId: existingQuiz.id,
+      //     topicTitle: topic.title,
+      //     attempted: true,
+      //   });
+      // }
+
       const existingQuestions = await questionRepo.find({
         where: { quiz: { id: existingQuiz.id } },
       });
@@ -40,6 +60,7 @@ export const generateQuiz = async (req: Request, res: Response) => {
       res.json({
         quizId: existingQuiz.id,
         topicTitle: topic.title,
+        attempted: false,
         questions: existingQuestions.map((q) => ({
           id: q.id,
           question: q.question,
@@ -50,6 +71,9 @@ export const generateQuiz = async (req: Request, res: Response) => {
       });
       return;
     }
+
+    console.log("topic.syllabus.rawText", topic.syllabus.rawText);
+    console.log("topic.title", topic.title);
 
     const quizData = await generateQuizForTopic(
       topic.title,
