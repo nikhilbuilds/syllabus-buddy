@@ -1,13 +1,33 @@
 import { openai } from "../config/openai";
 
-export const extractTopicsFromSyllabus = async (rawText: string) => {
+export const extractTopicsFromSyllabus = async (
+  rawText: string,
+  preferences: string
+) => {
   console.log("rawText", rawText);
-  const systemPrompt = `You are a syllabus parser. Given a messy or structured syllabus, extract a list of clear topics or units. Respond only in JSON format like:
-[
-  { "title": "Introduction to AI" },
-  { "title": "Machine Learning" },
-  { "title": "Deep Learning" }
-]`;
+  //   const systemPrompt = `You are a syllabus parser. Given a messy or structured syllabus, extract a list of clear topics or units. Respond only in JSON format like:
+  // [
+  //   { "title": "Introduction to AI" },
+  //   { "title": "Machine Learning" },
+  //   { "title": "Deep Learning" }
+  // ]`;
+
+  const systemPrompt = `You are a syllabus parser. Given a messy or structured syllabus, extract a list of clear and distinct topics or units suitable for creating MCQ quizzes.
+
+  ${
+    preferences
+      ? `Use the following user preference to guide topic difficulty and depth: "${preferences}".`
+      : ""
+  }
+  
+  For each topic, also estimate the time (in minutes) it would reasonably take to understand or revise it.
+  
+  Return only a JSON array in the exact format below:
+  [
+    { "title": "Introduction to AI", "estimatedTime": 5 },
+    { "title": "Machine Learning", "estimatedTime": 10 },
+    { "title": "Deep Learning", "estimatedTime": 15 }
+  ]`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4-turbo",

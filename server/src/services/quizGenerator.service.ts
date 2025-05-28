@@ -1,16 +1,26 @@
 import { openai } from "../config/openai";
+import { QuizLevel } from "../constants/quiz";
 
 // Use the following syllabus context if relevant:
 // "${syllabusContext}"
 
 export const generateQuizForTopic = async (
   topicTitle: string,
-  syllabusContext?: string
+  syllabusContext?: string,
+  level?: QuizLevel,
+  questionCount?: number
 ) => {
   console.log("topicTitle", topicTitle);
   console.log("syllabusContext", syllabusContext);
-  const prompt = `
-Generate 3 multiple-choice questions for the topic: "${topicTitle}".
+  const prompt = ` Generate ${questionCount} ${
+    level ? `${level.toLowerCase()}-level` : ""
+  } multiple-choice questions for the topic: "${topicTitle}".
+${
+  syllabusContext
+    ? `Use the following syllabus context if relevant:\n${syllabusContext}`
+    : ""
+}
+Each question must have four options (A-D), one correct answer, and an explanation.
 
 Return the output in this exact JSON format:
 [

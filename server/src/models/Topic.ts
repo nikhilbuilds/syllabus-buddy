@@ -19,9 +19,12 @@ export class Topic {
   @Column()
   title!: string;
 
-  @Column()
+  @Column({ default: 1 })
   dayIndex!: number;
 
   @Column()
   estimatedTimeMinutes!: number;
+
+  @Column({ type: "date", nullable: true })
+  assignedDate!: Date;
 }

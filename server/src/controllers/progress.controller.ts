@@ -66,12 +66,12 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
     },
   });
 
-  if (existing) {
-    res
-      .status(200)
-      .json({ message: "Quiz already attempted", score, totalQuestions });
-    return;
-  }
+  // if (existing) {
+  //   res
+  //     .status(200)
+  //     .json({ message: "Quiz already attempted", score, totalQuestions });
+  //   return;
+  // }
 
   const progress = progressRepo.create({
     user,
@@ -83,6 +83,26 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
   });
 
   await progressRepo.save(progress);
+
+  const todayStr = moment().format("YYYY-MM-DD");
+
+  const lastUpdateStr = user.lastStreakUpdate
+    ? moment(user.lastStreakUpdate).format("YYYY-MM-DD")
+    : null;
+
+  if (lastUpdateStr === todayStr) {
+    // already updated today → do nothing
+  } else if (
+    lastUpdateStr === moment().subtract(1, "day").format("YYYY-MM-DD")
+  ) {
+    user.currentStreak += 1;
+    user.lastStreakUpdate = new Date();
+    await userRepo.save(user);
+  } else {
+    user.currentStreak = 1;
+    user.lastStreakUpdate = new Date();
+    await userRepo.save(user);
+  }
 
   res.status(200).json({ message: "Quiz Complete!", score, totalQuestions });
   return;
@@ -140,11 +160,15 @@ export const getProgressStats = async (req: Request, res: Response) => {
     }
   }
 
+  const user = await userRepo.findOneBy({ id: userId });
+
   res.json({
     totalTopics,
     completedTopics,
     completionRate,
-    streak,
+    streak: streak, // calculated from past data
+    currentStreak: user?.currentStreak || 0, // saved in DB
   });
+
   return;
 };

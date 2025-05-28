@@ -22,6 +22,12 @@ export class User {
   @Column({ default: 10 })
   dailyMinutes!: number;
 
+  @Column({ default: 0 })
+  currentStreak!: number;
+
+  @Column({ nullable: true })
+  lastStreakUpdate!: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 }

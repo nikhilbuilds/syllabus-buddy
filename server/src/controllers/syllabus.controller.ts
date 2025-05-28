@@ -11,8 +11,6 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const file = req.file;
 
-  console.log(req);
-
   if (!file) {
     res.status(400).json({ error: "No file uploaded" });
     return;

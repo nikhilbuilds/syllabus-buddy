@@ -22,9 +22,17 @@ interface DashboardData {
   topics: Topic[];
 }
 
+interface StatsData {
+  totalTopics: number;
+  completedTopics: number;
+  completionRate: number;
+  streak: number;
+  currentStreak: number;
+}
+
 export default function HomeScreen() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-
+  const [stats, setStats] = useState<StatsData | null>(null);
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
@@ -35,7 +43,17 @@ export default function HomeScreen() {
       }
     };
 
+    const fetchStats = async () => {
+      try {
+        const response = await axiosInstance.get("/progress/stats");
+        setStats(response.data);
+      } catch (error) {
+        console.error("Error fetching streak:", error);
+      }
+    };
+
     fetchDashboard();
+    fetchStats();
   }, []);
 
   if (!dashboard) {
@@ -46,35 +64,42 @@ export default function HomeScreen() {
     );
   }
 
-  const completionPercentage = Math.round(
-    (dashboard.completedTopics / dashboard.totalTopics) * 100
-  );
+  // const completionPercentage = Math.round(
+  //   (dashboard.completedTopics / dashboard.totalTopics) * 100
+  // );
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.statsContainer}>
         <Text style={styles.dayText}>Day {dashboard.todayIndex}</Text>
         <Text style={styles.progressText}>
-          Progress: {completionPercentage}%
+          Progress: {stats?.completionRate}%
         </Text>
         <View style={styles.progressBar}>
           <View
-            style={[styles.progressFill, { width: `${completionPercentage}%` }]}
+            style={[
+              styles.progressFill,
+              { width: `${stats?.completionRate || 0}%` },
+            ]}
           />
         </View>
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{dashboard.totalTopics}</Text>
+            <Text style={styles.statNumber}>{stats?.streak}</Text>
+            <Text style={styles.statLabel}>Streak</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats?.completionRate}%</Text>
+            <Text style={styles.statLabel}>Completion Rate</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats?.totalTopics}</Text>
             <Text style={styles.statLabel}>Total Topics</Text>
           </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{dashboard.completedTopics}</Text>
+          {/* <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats?.completedTopics}</Text>
             <Text style={styles.statLabel}>Completed</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{dashboard.remainingTopics}</Text>
-            <Text style={styles.statLabel}>Remaining</Text>
-          </View>
+          </View> */}
         </View>
       </View>
 
@@ -154,6 +179,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 16,
+    color: darkTheme.colors.text,
   },
   topicCard: {
     backgroundColor: darkTheme.colors.card,

@@ -7,6 +7,7 @@ import {
   JoinColumn,
 } from "typeorm";
 import { Topic } from "./Topic";
+import { QuizLevel } from "../constants/quiz";
 
 @Entity()
 export class Quiz {
@@ -19,6 +20,13 @@ export class Quiz {
 
   @Column({ default: true })
   generatedByAi!: boolean;
+
+  @Column({
+    type: "enum",
+    enum: QuizLevel,
+    nullable: false,
+  })
+  level!: QuizLevel;
 
   @CreateDateColumn()
   createdAt!: Date;

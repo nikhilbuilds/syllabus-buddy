@@ -8,6 +8,7 @@ import syllabusRoutes from "./routes/syllabus.routes";
 import quizRoutes from "./routes/quiz.routes";
 import progressRoutes from "./routes/progress.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
+import { startResetStreakJob } from "./jobs/resetStreak.job";
 
 dotenv.config();
 
@@ -26,5 +27,6 @@ createAppDataSource()
   .then(() => {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    startResetStreakJob(); // 👈 Starts the cron
   })
   .catch((err) => console.error("Error starting server:", err));
