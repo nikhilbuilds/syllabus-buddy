@@ -10,7 +10,6 @@ const router = Router();
 
 router.post("/generate/:topicId", requireAuth, generateQuiz);
 router.get("/:topicId/:level", requireAuth, getQuizByTopic);
-
 router.get("/:quizId", requireAuth, getQuizById);
 
 export default router;
