@@ -5,6 +5,7 @@ import { SplashScreen } from "expo-router";
 import { useAuth } from "../context/auth";
 import { View, ActivityIndicator } from "react-native";
 import { LoadingScreen } from "@/components/loading-screen";
+import { darkTheme } from "../constants/theme";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -22,7 +23,18 @@ function RootLayoutNav() {
 
   return (
     <Fragment>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          headerStyle: {
+            backgroundColor: darkTheme.colors.card,
+          },
+          headerTintColor: darkTheme.colors.text,
+          contentStyle: {
+            backgroundColor: darkTheme.colors.background,
+          },
+        }}
+      >
         <Fragment>
           <Stack.Screen name="login" />
           <Stack.Screen name="signup" />

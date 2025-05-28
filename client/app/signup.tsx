@@ -20,7 +20,8 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [_, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    clientId: "YOUR_GOOGLE_CLIENT_ID",
+    clientId:
+      "747037507479-19tl1fhdil7finkaib61u7j4s827vv4o.apps.googleusercontent.com",
     androidClientId: "YOUR_ANDROID_CLIENT_ID",
     iosClientId: "YOUR_IOS_CLIENT_ID",
   });

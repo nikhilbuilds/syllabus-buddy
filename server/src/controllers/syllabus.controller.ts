@@ -23,18 +23,25 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
   let rawText = "";
 
   try {
+    // if (file.mimetype === "application/pdf") {
+    //   const dataBuffer = fs.readFileSync(filePath);
+    //   const parsed = await pdfParse(dataBuffer);
+    //   rawText = parsed.text;
+
+    // } else if (file.mimetype === "text/plain") {
+    //   rawText = fs.readFileSync(filePath, "utf-8");
+    // } else {
+    //   res.status(400).json({ error: "Unsupported file type" });
+    //   return;
+    // }
+
     if (file.mimetype === "application/pdf") {
       const dataBuffer = fs.readFileSync(filePath);
       const parsed = await pdfParse(dataBuffer);
-      rawText = parsed.text;
+      rawText = parsed.text.replace(/\x00/g, "");
     } else if (file.mimetype === "text/plain") {
-      rawText = fs.readFileSync(filePath, "utf-8");
-    } else {
-      res.status(400).json({ error: "Unsupported file type" });
-      return;
+      rawText = fs.readFileSync(filePath, "utf-8").replace(/\x00/g, "");
     }
-
-    console.log("rawText", rawText);
 
     const syllabus = syllabusRepo.create({
       title,
@@ -71,18 +78,21 @@ export const deleteSyllabus = async (req: Request, res: Response) => {
   const syllabusId = parseInt(req.params.id);
 
   try {
-    const result = await syllabusRepo.delete({
+    const result = await syllabusRepo.softRemove({
       id: syllabusId,
       user: { id: userId },
     });
 
-    if (result.affected === 0) {
+    console.log("result", result);
+
+    if (result) {
       res.status(404).json({ error: "Syllabus not found" });
       return;
     }
 
     res.status(200).json({ message: "Syllabus deleted successfully" });
   } catch (error) {
+    console.log("error", error);
     res.status(500).json({ error: "Failed to delete syllabus" });
     return;
   }

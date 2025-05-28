@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import axiosInstance from "@/config/axios";
+import { darkTheme } from "@/constants/theme";
 
 interface QuizQuestion {
   id: number;
@@ -45,16 +46,32 @@ export default function QuizScreen() {
         console.log("fetching quiz", id);
         const response = await axiosInstance.get(`/quiz/${id}`);
         console.log("response", response.data);
+
         if (response.data.attempted) {
-          Alert.alert(response.data.message);
-          router.push({
-            pathname: "/syllabus/[id]",
-            params: { id: Number(syllabusId) },
-          });
+          Alert.alert(response.data.message, "", [
+            {
+              text: "OK",
+              onPress: () => {
+                // Replace instead of push to prevent going back to quiz
+                router.replace({
+                  pathname: "/syllabus/[id]",
+                  params: { id: Number(syllabusId) },
+                });
+              },
+            },
+          ]);
+          return; // Don't set quiz data if already attempted
         }
+
         setQuiz(response.data);
       } catch (error) {
         console.error("Error fetching quiz:", error);
+        Alert.alert("Error", "Failed to load quiz", [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ]);
       }
     };
     fetchQuiz();
@@ -81,18 +98,11 @@ export default function QuizScreen() {
 
   const handleNext = () => {
     if (isLastQuestion) {
-      // Submit quiz answers
       const submitQuiz = async () => {
         try {
           const response = await axiosInstance.post(`/progress/submit/${id}`, {
             answers: selectedAnswers,
           });
-
-          console.log("res", response.data);
-
-          // const correctAnswers = quiz.questions.filter(
-          //   (q) => selectedAnswers[q.id] === q.answer
-          // ).length;
 
           Alert.alert(
             response.data.message,
@@ -101,7 +111,7 @@ export default function QuizScreen() {
               {
                 text: "OK",
                 onPress: () =>
-                  router.push({
+                  router.replace({
                     pathname: "/syllabus/[id]",
                     params: { id: Number(syllabusId) },
                   }),
@@ -110,7 +120,6 @@ export default function QuizScreen() {
           );
         } catch (error) {
           console.error("Error submitting quiz:", error);
-          console.log("error", JSON.stringify(error));
           Alert.alert("Error", "Failed to submit quiz results");
         }
       };
@@ -188,6 +197,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: darkTheme.colors.background,
   },
   progressContainer: {
     marginBottom: 20,
@@ -199,22 +209,22 @@ const styles = StyleSheet.create({
   question: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 20,
+    color: darkTheme.colors.text,
   },
   option: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: darkTheme.colors.card,
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
   },
+  optionText: {
+    color: darkTheme.colors.text,
+  },
   correctOption: {
-    backgroundColor: "#d4edda",
+    backgroundColor: darkTheme.colors.success + "33",
   },
   wrongOption: {
-    backgroundColor: "#f8d7da",
-  },
-  optionText: {
-    fontSize: 16,
+    backgroundColor: darkTheme.colors.error + "33",
   },
   explanationContainer: {
     backgroundColor: "#e8f4f8",

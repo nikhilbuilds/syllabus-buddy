@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import axiosInstance from "@/config/axios";
+import { darkTheme } from "@/constants/theme";
 
 interface Topic {
   topicId: number;
@@ -85,7 +86,7 @@ export default function HomeScreen() {
             {topic.quizAttempted ? (
               <View style={styles.scoreContainer}>
                 <Text style={styles.scoreText}>
-                  Score: {topic.score}/{topic.totalQuestions}
+                  Score: {topic.score ?? 0}/{topic.totalQuestions}
                 </Text>
                 <Text style={styles.completedText}>Completed</Text>
               </View>
@@ -105,10 +106,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#fff",
+    backgroundColor: darkTheme.colors.background,
   },
   statsContainer: {
-    backgroundColor: "#f8f9fa",
+    backgroundColor: darkTheme.colors.card,
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
@@ -116,11 +117,11 @@ const styles = StyleSheet.create({
   dayText: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 8,
+    color: darkTheme.colors.text,
   },
   progressText: {
     fontSize: 16,
-    marginBottom: 8,
+    color: darkTheme.colors.textSecondary,
   },
   progressBar: {
     height: 8,
@@ -155,14 +156,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   topicCard: {
-    backgroundColor: "#f8f9fa",
+    backgroundColor: darkTheme.colors.card,
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
   },
   topicTitle: {
+    color: darkTheme.colors.text,
     fontSize: 16,
-    marginBottom: 8,
   },
   topicStatus: {
     flexDirection: "row",
