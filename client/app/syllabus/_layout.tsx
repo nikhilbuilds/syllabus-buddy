@@ -1,13 +1,17 @@
 import { Stack } from "expo-router";
+import { darkTheme } from "@/constants/theme";
 
 export default function SyllabusLayout() {
   return (
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: "#25292e",
+          backgroundColor: darkTheme.colors.card,
         },
-        headerTintColor: "#fff",
+        headerTintColor: darkTheme.colors.text,
+        contentStyle: {
+          backgroundColor: darkTheme.colors.background,
+        },
       }}
     />
   );

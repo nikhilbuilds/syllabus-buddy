@@ -92,6 +92,8 @@ export const generateQuiz = async (req: Request, res: Response) => {
       questionCount
     );
 
+    console.log({ quizData });
+
     const quiz = quizRepo.create({ topic, level });
     await quizRepo.save(quiz);
 
@@ -104,6 +106,8 @@ export const generateQuiz = async (req: Request, res: Response) => {
         explanation: q.explanation,
       })
     );
+
+    console.log({ questions });
 
     await questionRepo.save(questions);
 
@@ -176,21 +180,21 @@ export const getQuizById = async (req: Request, res: Response) => {
     }
 
     // Check if quiz was already attempted
-    const attempted = await progressRepo.findOne({
-      where: {
-        user: Equal(userId),
-        topic: Equal(quiz.topic.id),
-        quiz: Equal(quiz.id),
-      },
-    });
+    // const attempted = await progressRepo.findOne({
+    //   where: {
+    //     user: Equal(userId),
+    //     topic: Equal(quiz.topic.id),
+    //     quiz: Equal(quiz.id),
+    //   },
+    // });
 
-    if (attempted?.id) {
-      res.status(200).json({
-        message: "Quiz already attempted",
-        attempted: true,
-      });
-      return;
-    }
+    // if (attempted?.id) {
+    //   res.status(200).json({
+    //     message: "Quiz already attempted",
+    //     attempted: true,
+    //   });
+    //   return;
+    // }
 
     const questions = await questionRepo.find({
       where: { quiz: { id: quiz.id } },

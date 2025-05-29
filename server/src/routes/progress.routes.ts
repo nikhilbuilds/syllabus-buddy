@@ -7,7 +7,7 @@ import { requireAuth } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-router.post("/submit/:topicId", requireAuth, submitQuizAttempt);
+router.post("/submit/:quizId", requireAuth, submitQuizAttempt);
 router.get("/stats", requireAuth, getProgressStats);
 
 export default router;

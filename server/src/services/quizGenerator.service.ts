@@ -1,5 +1,6 @@
 import { openai } from "../config/openai";
 import { QuizLevel } from "../constants/quiz";
+import { jsonrepair } from "jsonrepair";
 
 // Use the following syllabus context if relevant:
 // "${syllabusContext}"
@@ -52,10 +53,24 @@ Return the output in this exact JSON format:
   const content = response.choices[0].message?.content || "[]";
 
   try {
-    console.log({ content });
     return JSON.parse(content);
   } catch (err) {
-    console.log("err", err);
-    throw new Error("Failed to parse quiz from OpenAI response.");
+    console.warn("Initial parse failed. Trying repair…");
+
+    try {
+      const fixed = jsonrepair(content);
+      return JSON.parse(fixed);
+    } catch (e) {
+      console.error("Repair failed:", e);
+      throw new Error("Failed to parse quiz from OpenAI response.");
+    }
   }
+
+  // try {
+  //   console.log({ content });
+  //   return JSON.parse(content);
+  // } catch (err) {
+  //   console.log("err", err);
+  //   throw new Error("Failed to parse quiz from OpenAI response.");
+  // }
 };

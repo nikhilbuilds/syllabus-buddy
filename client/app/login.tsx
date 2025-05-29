@@ -30,7 +30,7 @@ export default function Login() {
         <Image
           source={require("../assets/images/logo.png")}
           style={styles.logo}
-          resizeMode="contain"
+          resizeMode="contain" //make it big
         />
       </View>
       <TextInput
@@ -73,8 +73,8 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   logo: {
-    width: 200,
-    height: 100,
+    width: 300,
+    height: 150,
   },
   input: {
     height: 40,

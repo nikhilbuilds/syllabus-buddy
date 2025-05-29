@@ -27,9 +27,8 @@ export const parseTopics = async (req: Request, res: Response) => {
   });
 
   if (!syllabus || syllabus.user.id !== userId) {
-    return res
-      .status(404)
-      .json({ error: "Syllabus not found or unauthorized" });
+    res.status(404).json({ error: "Syllabus not found or unauthorized" });
+    return;
   }
 
   try {
@@ -76,14 +75,16 @@ export const parseTopics = async (req: Request, res: Response) => {
     // Step 5: Save to DB
     const saved = await topicRepo.save(sortedByDate);
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "Topics parsed and scheduled",
       count: saved.length,
       topics: saved,
     });
+    return;
   } catch (err) {
     console.error("Parse error:", err);
-    return res.status(500).json({ error: "Failed to parse topics" });
+    res.status(500).json({ error: "Failed to parse topics" });
+    return;
   }
 };
 

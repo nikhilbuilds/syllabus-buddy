@@ -22,90 +22,92 @@ const syllabusRepo = AppDataSource.getRepository(Syllabus);
 
 export const submitQuizAttempt = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
-  const topicId = Number(req.params.topicId);
+  const quizId = Number(req.params.quizId); // Updated from topicId → quizId
   const { answers } = req.body; // answers: { [questionId]: "A" }
 
-  const user = (await userRepo.findOneBy({ id: userId })) as User;
+  try {
+    const user = await userRepo.findOneByOrFail({ id: userId });
 
-  const topic = await topicRepo.findOne({
-    where: { id: topicId },
-    relations: ["syllabus", "syllabus.user"],
-  });
+    const quiz = await quizRepo.findOne({
+      where: { id: quizId },
+      relations: ["topic", "topic.syllabus", "topic.syllabus.user"],
+    });
 
-  if (!topic || topic.syllabus.user.id !== userId) {
-    res.status(403).json({ error: "Not allowed" });
-    return;
-  }
-
-  const quiz = await quizRepo.findOne({ where: { topic: { id: topicId } } });
-  if (!quiz) {
-    res.status(404).json({ error: "Quiz not found" });
-    return;
-  }
-
-  const questions = await questionRepo.find({
-    where: { quiz: { id: quiz.id } },
-  });
-
-  let correct = 0;
-
-  for (const q of questions) {
-    if (answers[q.id] && answers[q.id] === q.answer) {
-      correct++;
+    if (!quiz || quiz.topic.syllabus.user.id !== userId) {
+      res.status(403).json({ error: "Not allowed" });
+      return;
     }
+
+    const questions = await questionRepo.find({
+      where: { quiz: { id: quiz.id } },
+    });
+
+    let correct = 0;
+
+    for (const q of questions) {
+      if (answers[q.id] && answers[q.id] === q.answer) {
+        correct++;
+      }
+    }
+
+    const score = correct;
+    const totalQuestions = questions.length;
+
+    const existing = await progressRepo.findOne({
+      where: {
+        user: Equal(user.id),
+        topic: Equal(quiz.topic.id),
+        quiz: Equal(quiz.id),
+      },
+    });
+
+    if (existing) {
+      res.status(200).json({
+        message: "Quiz already attempted",
+        score: existing.score,
+        totalQuestions: existing.totalQuestions,
+      });
+      return;
+    }
+
+    const progress = progressRepo.create({
+      user,
+      topic: quiz.topic,
+      quiz,
+      score,
+      totalQuestions,
+      completedOn: new Date(),
+    });
+
+    await progressRepo.save(progress);
+
+    // ✅ Streak logic
+    const todayStr = moment().format("YYYY-MM-DD");
+    const lastUpdateStr = user.lastStreakUpdate
+      ? moment(user.lastStreakUpdate).format("YYYY-MM-DD")
+      : null;
+
+    if (lastUpdateStr === todayStr) {
+      // already updated today → no change
+    } else if (
+      lastUpdateStr === moment().subtract(1, "day").format("YYYY-MM-DD")
+    ) {
+      user.currentStreak += 1;
+      user.lastStreakUpdate = new Date();
+      await userRepo.save(user);
+    } else {
+      user.currentStreak = 1;
+      user.lastStreakUpdate = new Date();
+      await userRepo.save(user);
+    }
+
+    res.status(200).json({ message: "Quiz Complete!", score, totalQuestions });
+    return;
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+    return;
   }
-
-  const score = correct;
-  const totalQuestions = questions.length;
-
-  const existing = await progressRepo.findOne({
-    where: {
-      user: Equal(user.id),
-      topic: Equal(topic.id),
-      quiz: Equal(quiz.id),
-    },
-  });
-
-  // if (existing) {
-  //   res
-  //     .status(200)
-  //     .json({ message: "Quiz already attempted", score, totalQuestions });
-  //   return;
-  // }
-
-  const progress = progressRepo.create({
-    user,
-    topic,
-    quiz,
-    score,
-    totalQuestions,
-    completedOn: new Date(),
-  });
-
-  await progressRepo.save(progress);
-
-  const todayStr = moment().format("YYYY-MM-DD");
-
-  const lastUpdateStr = user.lastStreakUpdate
-    ? moment(user.lastStreakUpdate).format("YYYY-MM-DD")
-    : null;
-
-  if (lastUpdateStr === todayStr) {
-    // already updated today → do nothing
-  } else if (
-    lastUpdateStr === moment().subtract(1, "day").format("YYYY-MM-DD")
-  ) {
-    user.currentStreak += 1;
-    user.lastStreakUpdate = new Date();
-    await userRepo.save(user);
-  } else {
-    user.currentStreak = 1;
-    user.lastStreakUpdate = new Date();
-    await userRepo.save(user);
-  }
-
-  res.status(200).json({ message: "Quiz Complete!", score, totalQuestions });
-  return;
 };
 
 export const getProgressStats = async (req: Request, res: Response) => {
@@ -117,7 +119,7 @@ export const getProgressStats = async (req: Request, res: Response) => {
   });
 
   if (!syllabus) {
-    res.status(404).json({ error: "No syllabus found" });
+    res.status(200).json({ message: "No syllabus found", totalTopics: [] });
     return;
   }
 

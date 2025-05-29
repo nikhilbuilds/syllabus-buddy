@@ -187,3 +187,37 @@ export const getTodayDashboard = async (req: Request, res: Response) => {
     topics: results,
   });
 };
+
+export const getAttemptedQuizzes = async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+
+  try {
+    const user = await userRepo.findOneBy({ id: userId });
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const attempts = await progressRepo.find({
+      where: { user: { id: userId } },
+      relations: ["quiz", "quiz.topic"],
+      order: { completedOn: "DESC" },
+    });
+
+    const results = attempts.map((entry) => ({
+      quizId: entry.quiz.id,
+      topicId: entry.quiz.topic.id,
+      topicTitle: entry.quiz.topic.title,
+      score: entry.score,
+      totalQuestions: entry.totalQuestions,
+      completedOn: entry.completedOn,
+      difficulty: entry.quiz.level || "Unknown", // optional field
+    }));
+
+    res.json({ attemptedQuizzes: results });
+    return;
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};

@@ -11,6 +11,7 @@ import * as DocumentPicker from "expo-document-picker";
 import axiosInstance from "@/config/axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { darkTheme } from "@/constants/theme";
 
 interface Syllabus {
   id: number;
@@ -141,21 +142,38 @@ export default function SyllabusScreen() {
                 onPress={() => handleRename(item.id, item.title)}
                 style={styles.actionButton}
               >
-                <Ionicons name="pencil" size={20} color="#007AFF" />
+                <Ionicons
+                  name="pencil"
+                  size={20}
+                  color={darkTheme.colors.primary}
+                />
               </TouchableOpacity>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={() => handleDelete(item.id)}
                 style={styles.actionButton}
               >
-                <Ionicons name="trash-outline" size={20} color="red" />
-              </TouchableOpacity>
+                <Ionicons
+                  name="trash-outline"
+                  size={20}
+                  color={darkTheme.colors.error}
+                />
+              </TouchableOpacity> */}
             </View>
+          </View>
+        )}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyList}>
+            <Text style={styles.emptyText}>No syllabuses found</Text>
+            <Text style={styles.emptyText}>Upload one to get started</Text>
           </View>
         )}
       />
 
       <TouchableOpacity style={styles.uploadButton} onPress={handleUpload}>
-        <Text style={styles.buttonText}>Upload Syllabus</Text>
+        <View style={styles.uploadButtonContent}>
+          <Ionicons name="cloud-upload-outline" size={24} color="#000" />
+          <Text style={styles.buttonText}>Upload Syllabus</Text>
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -165,29 +183,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: darkTheme.colors.background,
   },
   uploadButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#ffd33d",
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 16,
+    shadowColor: "#ffd33d",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  uploadButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonText: {
-    color: "white",
+    color: "#000",
     textAlign: "center",
     fontSize: 16,
     fontWeight: "bold",
+    marginLeft: 8,
   },
   syllabusItem: {
     padding: 16,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: darkTheme.colors.card,
     borderRadius: 8,
     marginBottom: 8,
     flexDirection: "row",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: darkTheme.colors.border,
   },
   syllabusTitle: {
     fontSize: 16,
+    color: darkTheme.colors.text,
   },
   titleContainer: {
     flex: 1,
@@ -196,9 +232,21 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "transparent",
   },
   actionButton: {
     padding: 8,
     marginLeft: 8,
+  },
+  emptyList: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+  },
+  emptyText: {
+    color: darkTheme.colors.textSecondary,
+    fontSize: 16,
+    textAlign: "center",
   },
 });

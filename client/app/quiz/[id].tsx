@@ -31,7 +31,7 @@ interface Quiz {
 }
 
 export default function QuizScreen() {
-  const { id, syllabusId } = useLocalSearchParams();
+  const { id, syllabusId, returnTo } = useLocalSearchParams();
   const router = useRouter();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -104,30 +104,24 @@ export default function QuizScreen() {
             answers: selectedAnswers,
           });
 
+          if (returnTo === "home") {
+            router.replace("/(tabs)");
+          } else if (returnTo === "topics") {
+            router.replace(`/syllabus/${syllabusId}`);
+          }
+
           Alert.alert(
-            response.data.message,
-            `You got ${response.data.score} out of ${response.data.totalQuestions} correct!`,
-            [
-              {
-                text: "OK",
-                onPress: () =>
-                  router.replace({
-                    pathname: "/syllabus/[id]",
-                    params: { id: Number(syllabusId) },
-                  }),
-              },
-            ]
+            "Quiz Completed",
+            `Your score: ${response.data.score}/${response.data.totalQuestions}`
           );
         } catch (error) {
           console.error("Error submitting quiz:", error);
-          Alert.alert("Error", "Failed to submit quiz results");
+          Alert.alert("Error", "Failed to submit quiz");
         }
       };
-
       submitQuiz();
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
-      setShowExplanation(false);
     }
   };
 

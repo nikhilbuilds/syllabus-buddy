@@ -8,9 +8,14 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import axiosInstance from "@/config/axios";
+import { darkTheme } from "@/constants/theme";
+import { QuizLevel } from "@/constants/quiz";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 interface Topic {
   id: number;
@@ -44,6 +49,14 @@ export default function SyllabusDetailScreen() {
   const [syllabus, setSyllabus] = useState<SyllabusDetail | null>(null);
   const [isParsingTopics, setIsParsingTopics] = useState(false);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [dailyMinutes, setDailyMinutes] = useState("");
+  const [preferences, setPreferences] = useState("");
+  const [quizModalVisible, setQuizModalVisible] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<QuizLevel>(
+    QuizLevel.BEGINNER
+  );
+  const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
 
   const fetchTopics = async () => {
     try {
@@ -59,28 +72,60 @@ export default function SyllabusDetailScreen() {
     fetchTopics();
   }, [id]);
 
-  const handleParseTopics = async () => {
+  const parseTopics = async () => {
     try {
-      setIsParsingTopics(true);
-      await axiosInstance.post(`/syllabus/${id}/parse-topics`);
-      console.log({ id });
-      await fetchTopics(); // Refresh topics after parsing
+      setModalVisible(true);
     } catch (error) {
       console.error("Error parsing topics:", error);
+      Alert.alert("Error", "Failed to parse topics");
+    }
+  };
+
+  const handleSubmit = async () => {
+    setModalVisible(false);
+    setIsParsingTopics(true);
+    try {
+      const response = await axiosInstance.post(
+        `/syllabus/${id}/parse-topics`,
+        {
+          dailyMinutes: parseInt(dailyMinutes),
+          preferences,
+        }
+      );
+      Alert.alert("Success", "Topics parsed successfully");
+      router.replace(`/syllabus/${id}`);
+    } catch (error) {
+      console.error("Error parsing topics:", error);
+      Alert.alert("Error", "Failed to parse topics");
     } finally {
       setIsParsingTopics(false);
     }
   };
 
   const handleTopicPress = async (topicId: number) => {
+    setSelectedTopicId(topicId);
+    setQuizModalVisible(true);
+  };
+
+  const handleQuizGenerate = async () => {
+    setQuizModalVisible(false);
     try {
       setIsGeneratingQuiz(true);
-      const response = await axiosInstance.post(`/quiz/generate/${topicId}`);
+      const response = await axiosInstance.post(
+        `/quiz/generate/${selectedTopicId}`,
+        {
+          level: selectedLevel,
+        }
+      );
 
       if (response.data.quizId) {
         router.push({
           pathname: "/quiz/[id]",
-          params: { id: topicId, syllabusId: id },
+          params: {
+            id: response.data.quizId,
+            syllabusId: id,
+            returnTo: "topics",
+          },
         });
       }
     } catch (error) {
@@ -98,9 +143,9 @@ export default function SyllabusDetailScreen() {
           options={{
             title: "Topics",
             headerStyle: {
-              backgroundColor: "#25292e",
+              backgroundColor: darkTheme.colors.card,
             },
-            headerTintColor: "#fff",
+            headerTintColor: darkTheme.colors.text,
           }}
         />
         <View style={styles.container}>
@@ -116,9 +161,9 @@ export default function SyllabusDetailScreen() {
         options={{
           title: "Topics",
           headerStyle: {
-            backgroundColor: "#25292e",
+            backgroundColor: darkTheme.colors.card,
           },
-          headerTintColor: "#fff",
+          headerTintColor: darkTheme.colors.text,
         }}
       />
       <View style={styles.container}>
@@ -160,14 +205,106 @@ export default function SyllabusDetailScreen() {
             styles.parseButton,
             isParsingTopics && styles.parseButtonDisabled,
           ]}
-          onPress={handleParseTopics}
+          onPress={parseTopics}
           disabled={isParsingTopics}
         >
-          <Text style={styles.parseButtonText}>
-            {isParsingTopics ? "Parsing Topics..." : "Parse Topics"}
-          </Text>
+          <View style={styles.parseButtonContent}>
+            <Ionicons name="git-branch-outline" size={24} color="#000" />
+            <Text style={styles.parseButtonText}>
+              {isParsingTopics ? "Parsing Topics..." : "Parse Topics"}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalTitle}>Study Preferences</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Daily minutes (e.g., 15)"
+              placeholderTextColor="#666"
+              value={dailyMinutes}
+              onChangeText={setDailyMinutes}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={[styles.modalInput, { height: 100 }]}
+              placeholder="Any specific preferences?"
+              placeholderTextColor="#666"
+              value={preferences}
+              onChangeText={setPreferences}
+              multiline
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonCancel]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSubmit]}
+                onPress={handleSubmit}
+              >
+                <Text style={styles.buttonText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={quizModalVisible}
+        onRequestClose={() => setQuizModalVisible(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalTitle}>Select Quiz Level</Text>
+            {Object.values(QuizLevel).map((level) => (
+              <TouchableOpacity
+                key={level}
+                style={[
+                  styles.levelOption,
+                  selectedLevel === level && styles.selectedLevel,
+                ]}
+                onPress={() => setSelectedLevel(level)}
+              >
+                <Text
+                  style={[
+                    styles.levelText,
+                    selectedLevel === level && styles.selectedLevelText,
+                  ]}
+                >
+                  {level}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonCancel]}
+                onPress={() => setQuizModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSubmit]}
+                onPress={handleQuizGenerate}
+              >
+                <Text style={styles.buttonText}>Generate Quiz</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -176,18 +313,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: darkTheme.colors.background,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 16,
+    marginBottom: 12,
+    color: darkTheme.colors.text,
   },
   topicsList: {
     flex: 1,
     marginBottom: 16,
   },
   topicItem: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: darkTheme.colors.card,
     padding: 16,
     borderRadius: 8,
     marginBottom: 8,
@@ -196,6 +335,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     marginBottom: 8,
+    color: darkTheme.colors.text,
   },
   topicDetails: {
     flexDirection: "row",
@@ -203,26 +343,41 @@ const styles = StyleSheet.create({
   },
   topicInfo: {
     fontSize: 14,
-    color: "#666",
+    color: darkTheme.colors.textSecondary,
   },
   emptyText: {
     textAlign: "center",
-    color: "#666",
+    color: darkTheme.colors.textSecondary,
     marginTop: 24,
   },
   parseButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#ffd33d",
     padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
+    borderRadius: 12,
+    marginTop: 8,
+    shadowColor: "#ffd33d",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
-  parseButtonDisabled: {
-    backgroundColor: "#999",
+  parseButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   parseButtonText: {
-    color: "white",
+    color: "#000",
     fontSize: 16,
     fontWeight: "bold",
+    marginLeft: 8,
+  },
+  parseButtonDisabled: {
+    backgroundColor: "#ffd33d80",
+    shadowOpacity: 0.1,
   },
   loadingOverlay: {
     position: "absolute",
@@ -230,13 +385,92 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: `${darkTheme.colors.background}CC`,
     justifyContent: "center",
     alignItems: "center",
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: "#007AFF",
+    color: darkTheme.colors.primary,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalView: {
+    width: "90%",
+    backgroundColor: darkTheme.colors.card,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    color: darkTheme.colors.text,
+  },
+  modalInput: {
+    width: "100%",
+    height: 40,
+    backgroundColor: darkTheme.colors.background,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 15,
+    color: darkTheme.colors.text,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  button: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  buttonCancel: {
+    backgroundColor: darkTheme.colors.error,
+  },
+  buttonSubmit: {
+    backgroundColor: darkTheme.colors.success,
+  },
+  buttonText: {
+    color: darkTheme.colors.text,
+    textAlign: "center",
+    fontWeight: "bold",
+  },
+  levelOption: {
+    width: "100%",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: darkTheme.colors.background,
+    borderWidth: 1,
+    borderColor: darkTheme.colors.border,
+  },
+  selectedLevel: {
+    backgroundColor: darkTheme.colors.primary,
+    borderColor: darkTheme.colors.primary,
+  },
+  levelText: {
+    color: darkTheme.colors.text,
+    textAlign: "center",
+    fontSize: 16,
+  },
+  selectedLevelText: {
+    fontWeight: "bold",
   },
 });
