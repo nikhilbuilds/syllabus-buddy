@@ -9,6 +9,7 @@ import quizRoutes from "./routes/quiz.routes";
 import progressRoutes from "./routes/progress.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
 import testRoutes from "./routes/test.routes";
+import onboardingRoutes from "./routes/onboarding.routes";
 import { NotificationWorker } from "./workers/notificationWorker";
 import { StreakMonitorService } from "./services/streakMonitor.service";
 import cron from "node-cron";
@@ -25,6 +26,7 @@ app.use("/api/v1/quiz", quizRoutes);
 app.use("/api/v1/progress", progressRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/test", testRoutes);
+app.use("/api/v1/onboarding", onboardingRoutes);
 
 createAppDataSource()
   .then(() => {

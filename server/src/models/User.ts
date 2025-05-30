@@ -24,6 +24,36 @@ export class User {
   @Column()
   name!: string;
 
+  @Column({ nullable: true })
+  age?: number;
+
+  @Column({ nullable: true })
+  currentOccupation?: string;
+
+  @Column({ default: "en" })
+  preferredLanguage!: string;
+
+  @Column({ type: "text", nullable: true })
+  learningGoals?: string;
+
+  @Column({ nullable: true })
+  targetExam?: string;
+
+  @Column({ type: "text", nullable: true })
+  additionalNotes?: string;
+
+  @Column({ default: false })
+  isEmailVerified!: boolean;
+
+  @Column({ nullable: true })
+  emailVerificationToken?: string;
+
+  @Column({ nullable: true })
+  emailVerificationExpires?: Date;
+
+  @Column({ default: false })
+  isOnboardingComplete!: boolean;
+
   @Column({ default: 10 })
   dailyMinutes!: number;
 

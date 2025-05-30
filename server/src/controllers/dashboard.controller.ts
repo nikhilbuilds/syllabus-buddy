@@ -91,7 +91,10 @@ export const getTodayDashboard = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
 
   const user = await userRepo.findOneBy({ id: userId });
-  if (!user) return res.status(404).json({ error: "User not found" });
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
 
   const today = moment().startOf("day").toDate();
   const tomorrow = moment().add(1, "day").startOf("day").toDate();
@@ -183,10 +186,11 @@ export const getTodayDashboard = async (req: Request, res: Response) => {
     }
   }
 
-  return res.json({
+  res.json({
     currentStreak: user.currentStreak,
     topics: results,
   });
+  return;
 };
 
 export const getAttemptedQuizzes = async (req: Request, res: Response) => {
@@ -219,6 +223,7 @@ export const getAttemptedQuizzes = async (req: Request, res: Response) => {
     return;
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error" });
+    return;
   }
 };

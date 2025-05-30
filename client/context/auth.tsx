@@ -11,6 +11,7 @@ import axiosInstance from "../config/axios";
 interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resendVerification: () => Promise<void>;
   session: boolean;
   isLoading: boolean;
   user: User | null;
@@ -20,11 +21,15 @@ interface User {
   id: string;
   email: string;
   name: string;
+  isEmailVerified: boolean;
+  isOnboardingComplete: boolean;
+  needsNewVerificationEmail?: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   signIn: async () => {},
   signOut: async () => {},
+  resendVerification: async () => {},
   session: false,
   isLoading: true,
   user: null,
@@ -52,25 +57,34 @@ export function AuthProvider({ children }: PropsWithChildren) {
   // Handle navigation when session changes
   useEffect(() => {
     if (!isLoading && session !== null) {
-      // Only navigate when we have a definitive auth state
-      if (session) {
-        router.replace("/(tabs)");
+      if (session && user) {
+        if (!user.isEmailVerified) {
+          if (user.needsNewVerificationEmail) {
+            resendVerification().catch(console.error);
+          }
+          router.replace("/(auth)/verify-email");
+        } else if (!user.isOnboardingComplete) {
+          router.replace("/(onboarding)/personal-info");
+        } else {
+          router.replace("/(tabs)");
+        }
       } else {
         router.replace("/login");
       }
     }
-  }, [session, isLoading]);
+  }, [session, isLoading, user]);
 
   const checkAuth = async () => {
-    setIsLoading(true); // Ensure loading state is true when checking
+    setIsLoading(true);
     try {
-      const response = await axiosInstance.get("/users");
+      const response = await axiosInstance.get("/users/profile"); // Use consistent endpoint
       setSession(true);
-      console.log("response", response.data.user);
       setUser(response.data.user);
+      console.log("Auth check response:", response.data.user);
     } catch (error) {
       console.log("Auth check failed:", error);
       setSession(false);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -86,6 +100,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       if (response.status === 200) {
         setSession(true);
+        setUser(response.data.user);
+        // Navigation will be handled by useEffect above
       }
     } catch (error) {
       console.error("Sign in error:", error);
@@ -103,7 +119,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
       console.error("Sign out error:", error);
     } finally {
       setSession(false);
+      setUser(null);
       setIsLoading(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    try {
+      const response = await axiosInstance.post("/users/resend-verification");
+      console.log("response==================>", response.data);
+      if (user) {
+        setUser({ ...user, needsNewVerificationEmail: false });
+      }
+    } catch (error) {
+      console.error(
+        "Resend verification error:==========>",
+        JSON.stringify(error)
+      );
+      throw error;
     }
   };
 
@@ -112,6 +145,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       value={{
         signIn,
         signOut,
+        resendVerification,
         session,
         isLoading,
         user,

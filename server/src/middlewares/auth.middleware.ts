@@ -8,6 +8,8 @@ export const requireAuth = (
 ) => {
   const token = req.cookies.token;
 
+  console.log("token", token);
+
   if (!token) {
     res.status(401).json({ error: "No auth token found" });
     return;
@@ -17,6 +19,7 @@ export const requireAuth = (
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       userId: number;
     };
+
     (req as any).userId = decoded.userId;
     next();
   } catch {

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Email Verification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      // Get token from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token");
+
+      function openApp() {
+        if (token) {
+          // Try to open the app
+          const appUrl = `studyapp://verify-email?token=${token}`;
+
+          // For iOS Safari
+          if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            window.location.href = appUrl;
+            setTimeout(() => {
+              // If still here after 2 seconds, app probably not installed
+              showFallback();
+            }, 2000);
+          }
+          // For Android
+          else if (/Android/.test(navigator.userAgent)) {
+            const intent = `intent://verify-email?token=${token}#Intent;scheme=studyapp;package=com.yourcompany.studyapp;end`;
+            window.location.href = intent;
+            setTimeout(showFallback, 2000);
+          }
+          // For desktop/other
+          else {
+            showFallback();
+          }
+        }
+      }
+
+      function showFallback() {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("fallback").style.display = "block";
+      }
+
+      // Try to open app when page loads
+      window.onload = openApp;
+    </script>
+  </head>
+  <body
+    style="font-family: Arial, sans-serif; text-align: center; padding: 50px"
+  >
+    <div id="loading">
+      <h2>Opening StudyApp...</h2>
+      <p>Please wait while we redirect you to the app.</p>
+    </div>
+
+    <div id="fallback" style="display: none">
+      <h2>📱 Open in StudyApp</h2>
+      <p>
+        To verify your email, please open this link in the StudyApp mobile app.
+      </p>
+
+      <div style="margin: 20px 0">
+        <button
+          onclick="openApp()"
+          style="
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          Try Again
+        </button>
+      </div>
+
+      <p style="color: #666; font-size: 14px">
+        Don't have the app? Download it from:<br />
+        <a href="#" style="color: #007bff">App Store</a> |
+        <a href="#" style="color: #007bff">Google Play</a>
+      </p>
+
+      <details
+        style="
+          margin-top: 30px;
+          text-align: left;
+          max-width: 400px;
+          margin-left: auto;
+          margin-right: auto;
+        "
+      >
+        <summary style="cursor: pointer; color: #666">
+          Manual verification
+        </summary>
+        <p style="font-size: 12px; color: #666; word-break: break-all">
+          If you're having trouble, copy this token and paste it in the app:<br />
+          <code style="background: #f5f5f5; padding: 5px; border-radius: 3px"
+            >${token || 'No token found'}</code
+          >
+        </p>
+      </details>
+    </div>
+  </body>
+</html>

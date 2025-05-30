@@ -1,17 +1,19 @@
 import { Stack } from "expo-router";
 import { AuthProvider } from "../context/auth";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { SplashScreen } from "expo-router";
 import { useAuth } from "../context/auth";
 import { View, ActivityIndicator } from "react-native";
 import { LoadingScreen } from "@/components/loading-screen";
 import { darkTheme } from "../constants/theme";
 import { NotificationService } from "@/services/notificationService";
+import onboardingService from "../services/onboardingService";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const { session, isLoading } = useAuth();
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   console.log("session", session);
   console.log("isLoading", isLoading);
@@ -25,16 +27,26 @@ function RootLayoutNav() {
   useEffect(() => {
     const initializeNotifications = async () => {
       console.log("Initializing notifications...");
-
-      // Force regenerate token every app start (for testing)
-      await NotificationService.regeneratePushToken();
-
-      // Setup listeners
       NotificationService.setupNotificationListeners();
     };
 
     initializeNotifications();
   }, []);
+
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, [session]);
+
+  const checkOnboardingStatus = async () => {
+    if (session) {
+      try {
+        const status = await onboardingService.getOnboardingStatus();
+        setNeedsOnboarding(!status.data.isOnboardingComplete);
+      } catch (error) {
+        console.log("Onboarding status check failed:", error);
+      }
+    }
+  };
 
   return (
     <Fragment>
@@ -52,7 +64,9 @@ function RootLayoutNav() {
       >
         <Fragment>
           <Stack.Screen name="login" />
-          <Stack.Screen name="signup" />
+          <Stack.Screen name="verify-email" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(onboarding)" />
         </Fragment>
       </Stack>
       <Stack.Protected guard={session}>

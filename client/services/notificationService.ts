@@ -79,41 +79,25 @@ export class NotificationService {
     });
   }
 
-  // static async regeneratePushToken(): Promise<string | null> {
-  //   try {
-  //     console.log("Regenerating push token...");
+  static async regeneratePushToken(): Promise<void> {
+    try {
+      // Request permissions first
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") {
+        console.log("Notification permissions not granted");
+        return;
+      }
 
-  //     if (!Device.isDevice) {
-  //       console.log("Must use physical device for Push Notifications");
-  //       return null;
-  //     }
+      // Get the push token
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log("Generated push token:", token);
 
-  //     // Request permissions again
-  //     const { status } = await Notifications.requestPermissionsAsync();
-  //     if (status !== "granted") {
-  //       alert("Push notification permissions required!");
-  //       return null;
-  //     }
-
-  //     // Generate new token
-  //     const token = (await Notifications.getExpoPushTokenAsync()).data;
-
-  //     console.log("New push token:==========>", token);
-
-  //     // Save new token to server
-  //     try {
-  //       await axiosInstance.post("/test/save-push-token", { token });
-  //       console.log("New push token saved to server");
-  //     } catch (error) {
-  //       console.error("Failed to save new push token:==========>", error);
-  //     }
-
-  //     return token;
-  //   } catch (error) {
-  //     console.error("Error regenerating push token:", error);
-  //     return null;
-  //   }
-  // }
+      // Store or send token to your backend if needed
+      // await this.sendTokenToBackend(token);
+    } catch (error) {
+      console.error("Error regenerating push token:", error);
+    }
+  }
 
   // static async clearAndRegenerateToken(): Promise<string | null> {
   //   try {
