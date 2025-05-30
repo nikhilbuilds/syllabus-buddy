@@ -1,7 +1,31 @@
-import { Text, View, StyleSheet, ScrollView } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import { darkTheme } from "@/constants/theme";
+import { NotificationService } from "@/services/notificationService";
 
 export default function AboutScreen() {
+  // const handleRegenerateToken = async () => {
+  //   try {
+  //     const newToken = await NotificationService.regeneratePushToken();
+  //     if (newToken) {
+  //       Alert.alert(
+  //         "Success",
+  //         `New token generated: ${newToken.substring(0, 50)}...`
+  //       );
+  //     } else {
+  //       Alert.alert("Error", "Failed to generate new token");
+  //     }
+  //   } catch (error) {
+  //     Alert.alert("Error", "Failed to regenerate token");
+  //   }
+  // };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
@@ -48,6 +72,13 @@ export default function AboutScreen() {
         <Text style={styles.sectionTitle}>Version</Text>
         <Text style={styles.text}>1.0.0</Text>
       </View>
+
+      {/* <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Push Notifications</Text>
+        <TouchableOpacity style={styles.button} onPress={handleRegenerateToken}>
+          <Text style={styles.buttonText}>Regenerate Push Token</Text>
+        </TouchableOpacity>
+      </View> */}
     </ScrollView>
   );
 }
@@ -99,5 +130,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: darkTheme.colors.textSecondary,
     lineHeight: 20,
+  },
+  button: {
+    backgroundColor: "#ffd33d",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  buttonText: {
+    color: "black",
+    fontWeight: "bold",
   },
 });

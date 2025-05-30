@@ -1,13 +1,17 @@
 {
   "expo": {
-    "name": "syllabusBuddy",
-    "slug": "syllabusBuddy",
+    "name": "syllabus-buddy",
+    "slug": "syllabus-buddy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "syllabusbuddy",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "scheme": "myapp",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -39,6 +43,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fa8da59a-abb3-42cc-8ea1-0b0b3bbfc5f9"
+      }
     }
   }
 }

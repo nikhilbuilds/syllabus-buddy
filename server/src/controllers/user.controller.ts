@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { AppDataSource } from "../db/data-source";
 import { User } from "../models/User";
+import { PushNotificationService } from "../services/pushNotification.service";
 
 const userRepo = AppDataSource.getRepository(User);
 
@@ -58,6 +59,13 @@ export const loginUser = async (req: Request, res: Response) => {
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
+
+    await PushNotificationService.sendPushNotification(
+      user.id,
+      "Welcome to Syllabus Buddy!",
+      "We're excited to have you on board! Let's get started on your learning journey.",
+      { test: true }
+    );
 
     res
       .status(200)

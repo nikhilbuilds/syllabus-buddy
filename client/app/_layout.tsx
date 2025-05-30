@@ -23,13 +23,17 @@ function RootLayoutNav() {
   }, [isLoading]);
 
   useEffect(() => {
-    // Register for push notifications
-    NotificationService.registerForPushNotifications();
+    const initializeNotifications = async () => {
+      console.log("Initializing notifications...");
 
-    // Setup listeners
-    NotificationService.setupNotificationListeners();
+      // Force regenerate token every app start (for testing)
+      await NotificationService.regeneratePushToken();
 
-    console.log("NotificationService.registerForPushNotifications()");
+      // Setup listeners
+      NotificationService.setupNotificationListeners();
+    };
+
+    initializeNotifications();
   }, []);
 
   return (
