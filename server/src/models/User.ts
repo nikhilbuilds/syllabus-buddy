@@ -28,6 +28,9 @@ export class User {
   @Column({ nullable: true })
   lastStreakUpdate!: Date;
 
+  @Column({ nullable: true })
+  pushToken?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 }

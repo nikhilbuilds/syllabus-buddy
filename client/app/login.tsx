@@ -12,7 +12,7 @@ import { useAuth } from "../context/auth";
 import { router } from "expo-router";
 
 export default function Login() {
-  const [email, setEmail] = useState("abc@gmail.com");
+  const [email, setEmail] = useState("devnikhil0306@gmail.com");
   const [password, setPassword] = useState("helloWorld");
   const { signIn } = useAuth();
 

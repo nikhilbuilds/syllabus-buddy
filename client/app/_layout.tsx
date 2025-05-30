@@ -6,6 +6,7 @@ import { useAuth } from "../context/auth";
 import { View, ActivityIndicator } from "react-native";
 import { LoadingScreen } from "@/components/loading-screen";
 import { darkTheme } from "../constants/theme";
+import { NotificationService } from "@/services/notificationService";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -20,6 +21,16 @@ function RootLayoutNav() {
       SplashScreen.hideAsync();
     }
   }, [isLoading]);
+
+  useEffect(() => {
+    // Register for push notifications
+    NotificationService.registerForPushNotifications();
+
+    // Setup listeners
+    NotificationService.setupNotificationListeners();
+
+    console.log("NotificationService.registerForPushNotifications()");
+  }, []);
 
   return (
     <Fragment>
