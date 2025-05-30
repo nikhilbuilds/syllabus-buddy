@@ -1,45 +1,43 @@
 import { AppDataSource } from "../db/data-source";
 import { User } from "../models/User";
-import { UserProgress } from "../models/UserProgress";
 import { NotificationService } from "./notification.service";
+import { StreakService } from "./streak.service";
+import moment from "moment";
 
 export class StreakMonitorService {
   static async checkStreaksAndNotify(): Promise<void> {
-    const users = await AppDataSource.getRepository(User).find();
+    // Break inactive streaks first (optimized batch operation)
+    await StreakService.checkAndBreakInactiveStreaks();
 
-    for (const user of users) {
+    // Get users who need notifications (with conditions in SQL)
+    const userRepo = AppDataSource.getRepository(User);
+    const usersNeedingAlerts = await userRepo
+      .createQueryBuilder("user")
+      .where("user.currentStreak > 0")
+      .andWhere("user.lastStreakUpdate IS NOT NULL")
+      .andWhere("DATE(user.lastStreakUpdate) != :today", {
+        today: moment().format("YYYY-MM-DD"),
+      })
+      .andWhere("DATE(user.lastStreakUpdate) = :yesterday", {
+        yesterday: moment().subtract(1, "day").format("YYYY-MM-DD"),
+      })
+      .getMany();
+
+    // Send notifications
+    const notificationPromises = usersNeedingAlerts.map(async (user) => {
       try {
-        const streak = await this.getCurrentStreak(user.id);
-        const lastActivity = await this.getLastActivity(user.id);
-
-        // Check if user hasn't been active today and has a streak to lose
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (streak > 0 && (!lastActivity || lastActivity < today)) {
-          // Send streak alert
-          await NotificationService.sendStreakAlert(user.id, streak);
-        }
+        console.log(
+          `Sending streak alert to user ${user.id}, streak: ${user.currentStreak}`
+        );
+        await NotificationService.sendStreakAlert(user.id, user.currentStreak);
       } catch (error) {
-        console.error(`Error checking streak for user ${user.id}:`, error);
+        console.error(`Error sending notification to user ${user.id}:`, error);
       }
-    }
-  }
-
-  private static async getCurrentStreak(userId: number): Promise<number> {
-    // Implement your streak calculation logic
-    // This is a placeholder - adapt to your existing streak logic
-    return 0;
-  }
-
-  private static async getLastActivity(userId: number): Promise<Date | null> {
-    const lastProgress = await AppDataSource.getRepository(
-      UserProgress
-    ).findOne({
-      where: { user: { id: userId } },
-      order: { completedOn: "DESC" },
     });
 
-    return lastProgress?.completedOn || null;
+    // Execute all notifications in parallel
+    await Promise.allSettled(notificationPromises);
+
+    console.log(`Sent streak alerts to ${usersNeedingAlerts.length} users`);
   }
 }

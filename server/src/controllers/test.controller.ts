@@ -3,6 +3,9 @@ import { EmailService } from "../services/email.service";
 import { NotificationService } from "../services/notification.service";
 import { NotificationType, NotificationChannel } from "../models/Notification";
 import { PushNotificationService } from "../services/pushNotification.service";
+import { AppDataSource } from "../db/data-source";
+import { UserProgress } from "../models/UserProgress";
+import { StreakService } from "../services/streak.service";
 
 export const testEmail = async (req: Request, res: Response) => {
   try {
@@ -83,6 +86,93 @@ export const savePushToken = async (req: Request, res: Response) => {
     res.json({ success: true, message: "Push token saved successfully" });
   } catch (error: any) {
     console.error("Save push token failed:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const testStreakCalculation = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    // Use the new streak service
+    const streakData = await StreakService.getUserStreakData(userId);
+
+    // Get raw progress data for debugging
+    const progressData = await AppDataSource.getRepository(UserProgress).find({
+      where: { user: { id: userId } },
+      order: { completedOn: "DESC" },
+      take: 10,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        userId,
+        streakData,
+        progressData: progressData.map((p) => ({
+          id: p.id,
+          completedOn: p.completedOn,
+          score: p.score,
+          totalQuestions: p.totalQuestions,
+        })),
+      },
+    });
+  } catch (error: any) {
+    console.error("Test streak calculation failed:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const createTestProgress = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { daysAgo, score = 8, totalQuestions = 10 } = req.body;
+
+    const completedDate = new Date();
+    completedDate.setDate(completedDate.getDate() - (daysAgo || 0));
+    completedDate.setHours(14, 0, 0, 0); // Set to 2 PM
+
+    const progressRepo = AppDataSource.getRepository(UserProgress);
+    const progress = progressRepo.create({
+      user: { id: userId },
+      topic: { id: 1 }, // Dummy topic ID
+      quiz: { id: 1 }, // Dummy quiz ID
+      score,
+      totalQuestions,
+      completedOn: completedDate,
+    });
+
+    await progressRepo.save(progress);
+
+    res.json({
+      success: true,
+      message: "Test progress created",
+      data: {
+        completedOn: completedDate,
+        score,
+        totalQuestions,
+      },
+    });
+  } catch (error: any) {
+    console.error("Create test progress failed:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const clearTestProgress = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    await AppDataSource.getRepository(UserProgress).delete({
+      user: { id: userId },
+    });
+
+    res.json({
+      success: true,
+      message: "All progress cleared for user",
+    });
+  } catch (error: any) {
+    console.error("Clear test progress failed:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

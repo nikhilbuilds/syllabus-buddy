@@ -8,7 +8,6 @@ import syllabusRoutes from "./routes/syllabus.routes";
 import quizRoutes from "./routes/quiz.routes";
 import progressRoutes from "./routes/progress.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
-import { startResetStreakJob } from "./jobs/resetStreak.job";
 import testRoutes from "./routes/test.routes";
 import { NotificationWorker } from "./workers/notificationWorker";
 import { StreakMonitorService } from "./services/streakMonitor.service";
@@ -35,12 +34,10 @@ createAppDataSource()
     const worker = new NotificationWorker();
     worker.start();
 
-    // Schedule streak monitoring (runs every day at 6 PM)
-    cron.schedule("0 18 * * *", async () => {
-      console.log("Running streak monitoring...");
+    // Cron job that runs every 6 hours (at 00:00, 06:00, 12:00, 18:00)
+    cron.schedule("0 */6 * * *", async () => {
+      console.log("Running streak monitoring every 6 hours...");
       await StreakMonitorService.checkStreaksAndNotify();
     });
-
-    startResetStreakJob(); // 👈 Starts the cron
   })
   .catch((err) => console.error("Error starting server:", err));

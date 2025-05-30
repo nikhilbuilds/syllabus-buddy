@@ -186,7 +186,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{stats?.streak}</Text>
+              <Text style={styles.statNumber}>{stats?.currentStreak}</Text>
               <Text style={styles.statLabel}>Streak</Text>
             </View>
             <View style={styles.statBox}>

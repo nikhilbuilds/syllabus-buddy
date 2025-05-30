@@ -9,6 +9,7 @@ import { Equal, In } from "typeorm";
 
 import moment from "moment";
 import { Syllabus } from "../models/Syllabus";
+import { StreakService } from "../services/streak.service";
 
 const userRepo = AppDataSource.getRepository(User);
 const topicRepo = AppDataSource.getRepository(Topic);
@@ -22,8 +23,8 @@ const syllabusRepo = AppDataSource.getRepository(Syllabus);
 
 export const submitQuizAttempt = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
-  const quizId = Number(req.params.quizId); // Updated from topicId → quizId
-  const { answers } = req.body; // answers: { [questionId]: "A" }
+  const quizId = Number(req.params.quizId);
+  const { answers } = req.body;
 
   try {
     const user = await userRepo.findOneByOrFail({ id: userId });
@@ -43,7 +44,6 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
     });
 
     let correct = 0;
-
     for (const q of questions) {
       if (answers[q.id] && answers[q.id] === q.answer) {
         correct++;
@@ -81,27 +81,18 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
 
     await progressRepo.save(progress);
 
-    // ✅ Streak logic
-    const todayStr = moment().format("YYYY-MM-DD");
-    const lastUpdateStr = user.lastStreakUpdate
-      ? moment(user.lastStreakUpdate).format("YYYY-MM-DD")
-      : null;
+    // Fast streak update using User model
+    await StreakService.updateUserStreakFast(userId);
 
-    if (lastUpdateStr === todayStr) {
-      // already updated today → no change
-    } else if (
-      lastUpdateStr === moment().subtract(1, "day").format("YYYY-MM-DD")
-    ) {
-      user.currentStreak += 1;
-      user.lastStreakUpdate = new Date();
-      await userRepo.save(user);
-    } else {
-      user.currentStreak = 1;
-      user.lastStreakUpdate = new Date();
-      await userRepo.save(user);
-    }
+    // Get user with updated streak for response
+    const userWithUpdatedStreak = await userRepo.findOneBy({ id: userId });
 
-    res.status(200).json({ message: "Quiz Complete!", score, totalQuestions });
+    res.status(200).json({
+      message: "Quiz Complete!",
+      score,
+      totalQuestions,
+      currentStreak: userWithUpdatedStreak?.currentStreak || 0,
+    });
     return;
   } catch (err) {
     console.error(err);

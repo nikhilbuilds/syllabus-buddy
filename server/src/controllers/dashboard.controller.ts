@@ -7,6 +7,7 @@ import { Topic } from "../models/Topic";
 import { Quiz } from "../models/Quiz";
 import { UserProgress } from "../models/UserProgress";
 import { User } from "../models/User";
+import { StreakService } from "../services/streak.service";
 
 const syllabusRepo = AppDataSource.getRepository(Syllabus);
 const topicRepo = AppDataSource.getRepository(Topic);
@@ -183,7 +184,7 @@ export const getTodayDashboard = async (req: Request, res: Response) => {
   }
 
   return res.json({
-    currentStreak: user.currentStreak || 0,
+    currentStreak: user.currentStreak,
     topics: results,
   });
 };
