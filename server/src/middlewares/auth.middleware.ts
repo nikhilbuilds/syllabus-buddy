@@ -8,8 +8,6 @@ export const requireAuth = (
 ) => {
   const token = req.cookies.token;
 
-  console.log("token", token);
-
   if (!token) {
     res.status(401).json({ error: "No auth token found" });
     return;

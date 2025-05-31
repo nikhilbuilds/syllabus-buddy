@@ -3,16 +3,15 @@ import { AppDataSource } from "../db/data-source";
 import { Topic } from "../models/Topic";
 import { Quiz } from "../models/Quiz";
 import { QuizQuestion } from "../models/QuizQuestion";
-import { generateQuizForTopic } from "../services/quizGenerator.service";
-import { Equal } from "typeorm";
-import { UserProgress } from "../models/UserProgress";
+import { generateQuizWithRetry } from "../services/quizGenerator.service";
 import { QuizLevel } from "../constants/quiz";
 import { getQuizQuestionCount } from "../services/generateQuizCount";
+import { LanguageCodes } from "../constants/languages";
 
 const topicRepo = AppDataSource.getRepository(Topic);
 const quizRepo = AppDataSource.getRepository(Quiz);
 const questionRepo = AppDataSource.getRepository(QuizQuestion);
-const progressRepo = AppDataSource.getRepository(UserProgress);
+// const progressRepo = AppDataSource.getRepository(UserProgress);
 
 //TODO: APIS Needed -
 // 1. Generate new quiz - with premium model
@@ -64,20 +63,22 @@ export const generateQuiz = async (req: Request, res: Response) => {
         where: { quiz: { id: existingQuiz.id, level: level } },
       });
 
-      res.json({
-        quizId: existingQuiz.id,
-        topicTitle: topic.title,
-        attempted: false,
-        level: existingQuiz.level,
-        questions: existingQuestions.map((q) => ({
-          id: q.id,
-          question: q.question,
-          options: q.options,
-          answer: q.answer,
-          explanation: q.explanation,
-        })),
-      });
-      return;
+      if (existingQuestions.length > 0) {
+        res.json({
+          quizId: existingQuiz.id,
+          topicTitle: topic.title,
+          attempted: true,
+          level: existingQuiz.level,
+          questions: existingQuestions.map((q) => ({
+            id: q.id,
+            question: q.question,
+            options: q.options,
+            answer: q.answer,
+            explanation: q.explanation,
+          })),
+        });
+        return;
+      }
     }
 
     const questionCount = getQuizQuestionCount(
@@ -85,16 +86,21 @@ export const generateQuiz = async (req: Request, res: Response) => {
       level
     );
 
-    const quizData = await generateQuizForTopic(
+    const quizData = await generateQuizWithRetry(
       topic.title,
       topic.syllabus.rawText,
       level,
-      questionCount
+      questionCount,
+      topic.syllabus.preferredLanguage as LanguageCodes
     );
 
     console.log({ quizData });
 
-    const quiz = quizRepo.create({ topic, level });
+    const quiz = quizRepo.create({
+      id: existingQuiz?.id,
+      topic,
+      level: existingQuiz?.level || level,
+    });
     await quizRepo.save(quiz);
 
     const questions = quizData.map((q: any) =>

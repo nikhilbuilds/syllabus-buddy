@@ -20,7 +20,6 @@ export default function VerifyEmailScreen() {
 
   useEffect(() => {
     if (token) {
-      console.log("token------------>", token);
       handleVerification(token as string);
     } else {
       setStatus("error");
@@ -29,11 +28,9 @@ export default function VerifyEmailScreen() {
 
   const handleVerification = async (verificationToken: string) => {
     try {
-      console.log("verificationToken", verificationToken);
       const response = await onboardingService.verifyEmail({
         token: verificationToken,
       });
-      console.log("response------------>", response.data);
       setStatus("success");
 
       // Redirect to main app since user is now verified

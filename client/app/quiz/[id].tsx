@@ -31,7 +31,11 @@ interface Quiz {
 }
 
 export default function QuizScreen() {
-  const { id, syllabusId, returnTo } = useLocalSearchParams();
+  const { id, syllabusId, returnTo } = useLocalSearchParams<{
+    id: string;
+    syllabusId?: string;
+    returnTo?: string;
+  }>();
   const router = useRouter();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -43,9 +47,7 @@ export default function QuizScreen() {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        console.log("fetching quiz", id);
         const response = await axiosInstance.get(`/quiz/${id}`);
-        console.log("response", response.data);
 
         if (response.data.attempted) {
           Alert.alert(response.data.message, "", [
@@ -74,7 +76,7 @@ export default function QuizScreen() {
         ]);
       }
     };
-    fetchQuiz();
+    if (id) fetchQuiz();
   }, [id]);
 
   if (!quiz) {
@@ -87,11 +89,10 @@ export default function QuizScreen() {
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
-  const hasAnswered = selectedAnswers[currentQuestion.id] !== undefined;
+  const hasAnswered = selectedAnswers[currentQuestion?.id] !== undefined;
 
   const handleAnswer = (answer: string) => {
     if (hasAnswered) return;
-
     setSelectedAnswers((prev) => ({ ...prev, [currentQuestion.id]: answer }));
     setShowExplanation(true);
   };
@@ -122,8 +123,29 @@ export default function QuizScreen() {
       submitQuiz();
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
+      setShowExplanation(false);
     }
   };
+
+  if (quiz.questions.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text>No questions available for this quiz.</Text>
+        <TouchableOpacity
+          style={styles.nextButton}
+          onPress={() => {
+            if (returnTo === "home") {
+              router.replace("/(tabs)");
+            } else if (returnTo === "topics") {
+              router.replace(`/syllabus/${syllabusId}`);
+            }
+          }}
+        >
+          <Text style={styles.nextButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -204,6 +226,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: darkTheme.colors.text,
+    marginBottom: 20,
   },
   option: {
     backgroundColor: darkTheme.colors.card,

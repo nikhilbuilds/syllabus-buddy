@@ -15,6 +15,7 @@ interface AuthContextType {
   session: boolean;
   isLoading: boolean;
   user: User | null;
+  checkAuth: () => Promise<void>;
 }
 
 interface User {
@@ -33,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   session: false,
   isLoading: true,
   user: null,
+  checkAuth: async () => {},
 });
 
 // This hook can be used to access the user info.
@@ -56,7 +58,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   // Handle navigation when session changes
   useEffect(() => {
-    if (!isLoading && session !== null) {
+    if (!isLoading) {
       if (session && user) {
         if (!user.isEmailVerified) {
           if (user.needsNewVerificationEmail) {
@@ -77,7 +79,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const checkAuth = async () => {
     setIsLoading(true);
     try {
-      const response = await axiosInstance.get("/users/profile"); // Use consistent endpoint
+      console.log("Checking auth called ----------------->");
+      const response = await axiosInstance.get("/users/profile");
+      console.log("response profile==========>", response.data);
       setSession(true);
       setUser(response.data.user);
       console.log("Auth check response:", response.data.user);
@@ -149,6 +153,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         session,
         isLoading,
         user,
+        checkAuth,
       }}
     >
       {children}

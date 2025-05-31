@@ -35,7 +35,8 @@ export const parseTopics = async (req: Request, res: Response) => {
     // Step 1: Extract topics from LLM
     const parsedTopics = await extractTopicsFromSyllabus(
       syllabus.rawText,
-      preferences
+      preferences,
+      syllabus.preferredLanguage
     );
 
     // Step 2: Create topic entities

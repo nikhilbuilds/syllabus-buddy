@@ -74,12 +74,6 @@ export default function HomeScreen() {
         axiosInstance.get("/dashboard/attempted-quizzes"),
       ]);
 
-      console.log({
-        dashboardRes: dashboardRes.data,
-        statsRes: statsRes.data,
-        quizzesRes: quizzesRes.data,
-      });
-
       setDashboard(dashboardRes.data);
       setStats(statsRes.data);
       setAttemptedQuizzes(quizzesRes.data.attemptedQuizzes);

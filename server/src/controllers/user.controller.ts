@@ -64,13 +64,6 @@ export const loginUser = async (req: Request, res: Response) => {
       expiresIn: "7d",
     });
 
-    res.cookie("token", jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // HTTPS only in prod
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
     // Check if user needs email verification
     let needsNewVerificationEmail = false;
     if (!user.isEmailVerified) {
@@ -93,6 +86,14 @@ export const loginUser = async (req: Request, res: Response) => {
 
     console.log("user", user);
 
+    res.cookie("token", jwtToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
     res.status(200).json({
       user: {
         id: user.id,
@@ -100,7 +101,7 @@ export const loginUser = async (req: Request, res: Response) => {
         email: user.email,
         isEmailVerified: user.isEmailVerified,
         isOnboardingComplete: user.isOnboardingComplete,
-        needsNewVerificationEmail, // Add this flag
+        needsNewVerificationEmail,
       },
     });
     return;
@@ -116,17 +117,9 @@ export const logoutUser = (req: Request, res: Response) => {
   return;
 };
 
-export const getUser = async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
-  const user = await userRepo.findOneBy({ id: userId });
-  console.log("user", user);
-  res.status(200).json({ user });
-  return;
-};
-
 export const getProfile = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
 
     if (!userId) {
       res.status(401).json({ error: "Authentication required" });
@@ -135,7 +128,14 @@ export const getProfile = async (req: Request, res: Response) => {
 
     const user = await userRepo.findOne({
       where: { id: userId },
-      relations: ["onboarding"], // Include onboarding relation
+      select: [
+        "id",
+        "email",
+        "name",
+        "isEmailVerified",
+        "isOnboardingComplete",
+        "preferredLanguage",
+      ],
     });
 
     if (!user) {
@@ -150,7 +150,8 @@ export const getProfile = async (req: Request, res: Response) => {
         email: user.email,
         name: user.name,
         isEmailVerified: user.isEmailVerified,
-        isOnboardingComplete: user.isOnboardingComplete, // Check if onboarding exists
+        isOnboardingComplete: user.isOnboardingComplete,
+        preferredLanguage: user.preferredLanguage,
       },
     });
   } catch (error) {

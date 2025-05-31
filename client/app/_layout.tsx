@@ -15,9 +15,6 @@ function RootLayoutNav() {
   const { session, isLoading } = useAuth();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
-  console.log("session", session);
-  console.log("isLoading", isLoading);
-
   useEffect(() => {
     if (!isLoading) {
       SplashScreen.hideAsync();

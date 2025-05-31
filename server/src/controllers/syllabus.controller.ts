@@ -4,6 +4,7 @@ import path from "path";
 import pdfParse from "pdf-parse";
 import { AppDataSource } from "../db/data-source";
 import { Syllabus } from "../models/Syllabus";
+import { UploadType } from "../constants/uploadType";
 
 const syllabusRepo = AppDataSource.getRepository(Syllabus);
 
@@ -21,18 +22,6 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
   let rawText = "";
 
   try {
-    // if (file.mimetype === "application/pdf") {
-    //   const dataBuffer = fs.readFileSync(filePath);
-    //   const parsed = await pdfParse(dataBuffer);
-    //   rawText = parsed.text;
-
-    // } else if (file.mimetype === "text/plain") {
-    //   rawText = fs.readFileSync(filePath, "utf-8");
-    // } else {
-    //   res.status(400).json({ error: "Unsupported file type" });
-    //   return;
-    // }
-
     if (file.mimetype === "application/pdf") {
       const dataBuffer = fs.readFileSync(filePath);
       const parsed = await pdfParse(dataBuffer);
@@ -45,6 +34,8 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
       title,
       rawText,
       uploadedFileUrl: file.filename,
+      preferredLanguage: req.body.preferredLanguage,
+      uploadType: UploadType.FILE,
       user: { id: userId },
     });
 
@@ -61,11 +52,31 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
   }
 };
 
+export const createSyllabus = async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+  const { title, description, preferredLanguage } = req.body;
+
+  const syllabus = syllabusRepo.create({
+    title,
+    rawText: description,
+    preferredLanguage,
+    uploadType: UploadType.MANUAL,
+    user: { id: userId },
+  });
+
+  await syllabusRepo.save(syllabus);
+
+  res
+    .status(201)
+    .json({ message: "Syllabus created", syllabusId: syllabus.id });
+  return;
+};
+
 export const getSyllabus = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const syllabus = await syllabusRepo.find({
     where: { user: { id: userId } },
-    select: { id: true, title: true },
+    select: { id: true, title: true, preferredLanguage: true },
   });
   res.json(syllabus);
   return;

@@ -13,7 +13,6 @@ import { useAuth } from "../../context/auth";
 
 export default function VerifyEmailScreen() {
   const { token } = useLocalSearchParams();
-  console.log("AUTH GROUP verify-email - token:", token);
   const { user, resendVerification } = useAuth();
   const [status, setStatus] = useState<
     "verifying" | "success" | "error" | "waiting"
@@ -25,8 +24,6 @@ export default function VerifyEmailScreen() {
       handleVerification(token as string);
     }
   }, [token]);
-
-  console.log("verificationToken", token);
 
   const handleVerification = async (verificationToken: string) => {
     try {

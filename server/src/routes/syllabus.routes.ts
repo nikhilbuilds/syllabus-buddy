@@ -6,6 +6,7 @@ import {
   deleteSyllabus,
   renameSyllabus,
   getSyllabusById,
+  createSyllabus,
 } from "../controllers/syllabus.controller";
 import { requireAuth } from "../middlewares/auth.middleware";
 import {
@@ -17,6 +18,7 @@ const upload = multer({ dest: "uploads/" });
 const router = Router();
 
 router.post("/upload", requireAuth, upload.single("file"), uploadSyllabus);
+router.post("/create", requireAuth, createSyllabus);
 router.post("/:id/parse-topics", requireAuth, parseTopics);
 router.get("/", requireAuth, getSyllabus);
 router.delete("/:id", requireAuth, deleteSyllabus);

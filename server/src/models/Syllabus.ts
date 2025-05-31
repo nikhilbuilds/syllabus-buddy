@@ -27,6 +27,12 @@ export class Syllabus {
   user!: User;
 
   @Column({ nullable: true })
+  preferredLanguage!: string;
+
+  @Column({ nullable: true })
+  uploadType!: string;
+
+  @Column({ nullable: true })
   deletedAt!: Date;
 
   @CreateDateColumn()

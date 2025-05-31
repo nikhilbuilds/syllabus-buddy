@@ -1,60 +1,74 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
-  FlatList,
   StyleSheet,
+  FlatList,
+  TouchableOpacity,
   Alert,
+  RefreshControl,
 } from "react-native";
-import * as DocumentPicker from "expo-document-picker";
-import axiosInstance from "@/config/axios";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { darkTheme } from "@/constants/theme";
+import UploadModal from "@/components/UploadModal";
+import axiosInstance from "@/config/axios";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useAuth } from "@/context/auth";
+import { LANGUAGES } from "@/constants/language";
 
 interface Syllabus {
   id: number;
   title: string;
+  preferredLanguage: string;
 }
 
 export default function SyllabusScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [syllabuses, setSyllabuses] = useState<Syllabus[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
-  const fetchSyllabuses = async () => {
+  const fetchSyllabuses = useCallback(async () => {
     try {
-      //use axiosInstance
+      setIsLoading(true);
       const response = await axiosInstance.get("/syllabus");
       setSyllabuses(response.data);
     } catch (error) {
       console.error("Error fetching syllabuses:", error);
+      Alert.alert("Error", "Failed to fetch syllabuses");
+    } finally {
+      setIsLoading(false);
     }
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchSyllabuses();
+    setRefreshing(false);
+  }, [fetchSyllabuses]);
+
+  // Fetch syllabuses when component mounts
+  useEffect(() => {
+    fetchSyllabuses();
+  }, [fetchSyllabuses]);
+
+  // Refresh syllabuses when tab comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchSyllabuses();
+    }, [fetchSyllabuses])
+  );
+
+  const handleSyllabusPress = (syllabusId: number, syllabusTitle: string) => {
+    router.push({
+      pathname: "/syllabus/[id]",
+      params: { id: Number(syllabusId), title: syllabusTitle },
+    });
   };
 
-  const handleDelete = async (id: number) => {
-    Alert.alert(
-      "Delete Syllabus",
-      "Are you sure you want to delete this syllabus?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await axiosInstance.delete(`/syllabus/${id}`);
-              fetchSyllabuses();
-            } catch (error) {
-              console.error("Error deleting syllabus:", error);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleRename = async (id: number, currentTitle: string) => {
+  const handleRename = async (syllabusId: number, currentTitle: string) => {
     Alert.prompt(
       "Rename Syllabus",
       "Enter new name for the syllabus",
@@ -63,14 +77,17 @@ export default function SyllabusScreen() {
         {
           text: "Rename",
           onPress: async (newTitle?: string) => {
-            if (newTitle?.trim()) {
+            if (newTitle?.trim() && newTitle.trim() !== currentTitle) {
               try {
-                await axiosInstance.patch(`/syllabus/${id}`, {
+                await axiosInstance.patch(`/syllabus/${syllabusId}`, {
                   title: newTitle.trim(),
                 });
-                fetchSyllabuses();
+                // Refresh the list after renaming
+                await fetchSyllabuses();
+                Alert.alert("Success", "Syllabus renamed successfully");
               } catch (error) {
                 console.error("Error renaming syllabus:", error);
+                Alert.alert("Error", "Failed to rename syllabus");
               }
             }
           },
@@ -81,100 +98,127 @@ export default function SyllabusScreen() {
     );
   };
 
-  const handleUpload = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "application/pdf",
-      });
-
-      if (result.assets && result.assets[0]) {
-        const file = result.assets[0];
-        const formData = new FormData();
-
-        formData.append("file", {
-          uri: file.uri,
-          name: file.name,
-          type: "application/pdf",
-        } as any);
-
-        const response = await axiosInstance.post(
-          "/syllabus/upload",
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Accept: "application/json",
-            },
-          }
-        );
-
-        if (response.status === 201) fetchSyllabuses();
-      }
-    } catch (error) {
-      console.log(JSON.stringify(error));
-      console.error("Error uploading file:", error);
-    }
-  };
-
-  const handleView = (id: number) => {
-    router.push(`/syllabus/${id}`);
-  };
-
-  useEffect(() => {
+  const handleUploadSuccess = (syllabusId: number) => {
+    // Refresh the list and optionally navigate to the new syllabus
     fetchSyllabuses();
-  }, []);
+    router.push(`/syllabus/${syllabusId}`);
+  };
+
+  const renderSyllabusItem = ({ item }: { item: Syllabus }) => (
+    <View style={styles.syllabusItem}>
+      <TouchableOpacity
+        style={styles.syllabusContent}
+        onPress={() => handleSyllabusPress(item.id, item.title)}
+      >
+        <View style={styles.syllabusIcon}>
+          <Ionicons name="document-text" size={24} color="#007AFF" />
+        </View>
+        <View style={styles.syllabusInfo}>
+          <Text style={styles.syllabusTitle}>
+            {item.title}{" "}
+            {
+              LANGUAGES.find((lang) => lang.code === item.preferredLanguage)
+                ?.icon
+            }
+          </Text>
+
+          <Text style={styles.syllabusSubtitle}>Tap to view details</Text>
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={20}
+          color={darkTheme.colors.textSecondary}
+        />
+      </TouchableOpacity>
+
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleRename(item.id, item.title)}
+        >
+          <Ionicons name="pencil" size={18} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIcon}>
+        <Ionicons
+          name="document-text-outline"
+          size={64}
+          color={darkTheme.colors.textSecondary}
+        />
+      </View>
+      <Text style={styles.emptyTitle}>No Syllabuses Yet</Text>
+      <Text style={styles.emptySubtitle}>
+        Create your first syllabus to get started with your learning journey
+      </Text>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => setUploadModalVisible(true)}
+      >
+        <Ionicons name="add" size={20} color="white" />
+        <Text style={styles.createButtonText}>Create Syllabus</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Syllabuses</Text>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={onRefresh}
+          disabled={refreshing}
+        >
+          <Ionicons
+            name="refresh"
+            size={24}
+            color={refreshing ? darkTheme.colors.textSecondary : "#007AFF"}
+          />
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         data={syllabuses}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.syllabusItem}>
-            <TouchableOpacity
-              style={styles.titleContainer}
-              onPress={() => handleView(item.id)}
-            >
-              <Text style={styles.syllabusTitle}>{item.title}</Text>
-            </TouchableOpacity>
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                onPress={() => handleRename(item.id, item.title)}
-                style={styles.actionButton}
-              >
-                <Ionicons
-                  name="pencil"
-                  size={20}
-                  color={darkTheme.colors.primary}
-                />
-              </TouchableOpacity>
-              {/* <TouchableOpacity
-                onPress={() => handleDelete(item.id)}
-                style={styles.actionButton}
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={20}
-                  color={darkTheme.colors.error}
-                />
-              </TouchableOpacity> */}
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyList}>
-            <Text style={styles.emptyText}>No syllabuses found</Text>
-            <Text style={styles.emptyText}>Upload one to get started</Text>
-          </View>
-        )}
+        renderItem={renderSyllabusItem}
+        contentContainerStyle={[
+          styles.listContainer,
+          syllabuses.length === 0 && styles.emptyListContainer,
+        ]}
+        ListEmptyComponent={!isLoading ? renderEmptyState : null}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#007AFF"
+            colors={["#007AFF"]}
+          />
+        }
+        showsVerticalScrollIndicator={false}
       />
 
-      <TouchableOpacity style={styles.uploadButton} onPress={handleUpload}>
-        <View style={styles.uploadButtonContent}>
-          <Ionicons name="cloud-upload-outline" size={24} color="#000" />
-          <Text style={styles.buttonText}>Upload Syllabus</Text>
-        </View>
-      </TouchableOpacity>
+      {/* Floating Add Button - only show when there are syllabuses */}
+      {syllabuses.length > 0 && (
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={() => setUploadModalVisible(true)}
+        >
+          <Ionicons name="add" size={28} color="white" />
+        </TouchableOpacity>
+      )}
+
+      {/* Upload Modal */}
+      <UploadModal
+        visible={uploadModalVisible}
+        onClose={() => setUploadModalVisible(false)}
+        onSuccess={handleUploadSuccess}
+        user={user}
+      />
     </View>
   );
 }
@@ -182,71 +226,142 @@ export default function SyllabusScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: darkTheme.colors.background,
   },
-  uploadButton: {
-    backgroundColor: "#ffd33d",
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: darkTheme.colors.border,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: darkTheme.colors.text,
+  },
+  refreshButton: {
+    padding: 8,
+  },
+  listContainer: {
     padding: 16,
+    paddingBottom: 100, // Space for floating button
+  },
+  emptyListContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    marginBottom: 24,
+    opacity: 0.5,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: darkTheme.colors.text,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: darkTheme.colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  createButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    gap: 8,
+  },
+  createButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  syllabusItem: {
+    flexDirection: "row",
+    backgroundColor: darkTheme.colors.card,
     borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: "#ffd33d",
+    marginBottom: 12,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  syllabusContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  syllabusIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#007AFF15",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  syllabusInfo: {
+    flex: 1,
+  },
+  syllabusTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: darkTheme.colors.text,
+    marginBottom: 4,
+  },
+  syllabusSubtitle: {
+    fontSize: 14,
+    color: darkTheme.colors.textSecondary,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  actionButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#007AFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 4,
     },
     shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    shadowRadius: 8,
     elevation: 8,
-  },
-  uploadButtonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonText: {
-    color: "#000",
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-  syllabusItem: {
-    padding: 16,
-    backgroundColor: darkTheme.colors.card,
-    borderRadius: 8,
-    marginBottom: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: darkTheme.colors.border,
-  },
-  syllabusTitle: {
-    fontSize: 16,
-    color: darkTheme.colors.text,
-  },
-  titleContainer: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  actionButtons: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "transparent",
-  },
-  actionButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  emptyList: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 32,
-  },
-  emptyText: {
-    color: darkTheme.colors.textSecondary,
-    fontSize: 16,
-    textAlign: "center",
   },
 });
