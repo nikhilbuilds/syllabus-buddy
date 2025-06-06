@@ -82,7 +82,7 @@ export const generateQuiz = async (req: Request, res: Response) => {
     }
 
     const questionCount = getQuizQuestionCount(
-      topic.estimatedTimeMinutes,
+      topic.estimatedTimeMinutes || 0,
       level
     );
 
@@ -91,7 +91,7 @@ export const generateQuiz = async (req: Request, res: Response) => {
       topic.syllabus.rawText,
       level,
       questionCount,
-      topic.syllabus.preferredLanguage as LanguageCodes
+      topic.syllabus.preferredLanguage
     );
 
     console.log({ quizData });

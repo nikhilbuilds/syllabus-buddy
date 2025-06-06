@@ -40,6 +40,7 @@ export default function UploadModal({
   const [selectedLanguage, setSelectedLanguage] = useState(
     user?.preferredLanguage
   );
+  const [dailyStudyMinutes, setDailyStudyMinutes] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
   const resetForm = () => {
@@ -48,6 +49,7 @@ export default function UploadModal({
     setSyllabusTitle("");
     setSyllabusDescription("");
     setSelectedLanguage(user?.preferredLanguage);
+    setDailyStudyMinutes("");
     setIsUploading(false);
   };
 
@@ -96,6 +98,14 @@ export default function UploadModal({
       return;
     }
 
+    if (!dailyStudyMinutes.trim() || isNaN(Number(dailyStudyMinutes))) {
+      Alert.alert(
+        "Error",
+        "Please enter a valid number of daily study minutes"
+      );
+      return;
+    }
+
     setIsUploading(true);
     try {
       let response;
@@ -110,18 +120,24 @@ export default function UploadModal({
         } as any);
         formData.append("title", syllabusTitle);
         formData.append("preferredLanguage", selectedLanguage);
+        formData.append("dailyStudyMinutes", dailyStudyMinutes);
 
-        response = await axiosInstance.post("/syllabus/upload", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        response = await axiosInstance.post(
+          "/syllabus/upload-queue",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
       } else {
         // Description upload
         response = await axiosInstance.post("/syllabus/create", {
           title: syllabusTitle,
           description: syllabusDescription,
           preferredLanguage: selectedLanguage,
+          dailyStudyMinutes: Number(dailyStudyMinutes),
         });
       }
 
@@ -227,6 +243,19 @@ export default function UploadModal({
           placeholderTextColor={darkTheme.colors.textSecondary}
           value={syllabusTitle}
           onChangeText={setSyllabusTitle}
+        />
+      </View>
+
+      {/* Daily Study Minutes Input */}
+      <View style={styles.inputSection}>
+        <Text style={styles.inputLabel}>Daily Study Minutes *</Text>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Enter daily study minutes"
+          placeholderTextColor={darkTheme.colors.textSecondary}
+          value={dailyStudyMinutes}
+          onChangeText={setDailyStudyMinutes}
+          keyboardType="numeric"
         />
       </View>
 

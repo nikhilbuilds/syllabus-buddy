@@ -96,18 +96,24 @@ export const getTodayDashboard = async (req: Request, res: Response) => {
     return;
   }
 
-  const today = moment().startOf("day").toDate();
-  const tomorrow = moment().add(1, "day").startOf("day").toDate();
+  // Use UTC for consistent date comparison
+  const today = moment.utc().startOf("day").toDate();
+  const tomorrow = moment.utc().add(1, "day").startOf("day").toDate();
+
+  console.log("today UTC", today);
+  console.log("tomorrow UTC", tomorrow);
 
   // Try to get today's topics
   let topics = await topicRepo.find({
     where: {
-      assignedDate: today,
+      assignedDate: Between(today, tomorrow),
       syllabus: { user: { id: userId } },
     },
     relations: ["syllabus"],
     order: { id: "ASC" },
   });
+
+  console.log("topics", topics);
 
   // If all topics for today are attempted, fall back to tomorrow
   let allCompleted = true;
@@ -145,9 +151,10 @@ export const getTodayDashboard = async (req: Request, res: Response) => {
 
   // If today's topics exist but are all completed → show tomorrow
   if (results.length > 0 && allCompleted) {
+    const nextDay = moment.utc().add(2, "day").startOf("day").toDate();
     topics = await topicRepo.find({
       where: {
-        assignedDate: tomorrow,
+        assignedDate: Between(tomorrow, nextDay),
         syllabus: { user: { id: userId } },
       },
       relations: ["syllabus"],

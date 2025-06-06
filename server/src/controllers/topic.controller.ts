@@ -33,11 +33,13 @@ export const parseTopics = async (req: Request, res: Response) => {
 
   try {
     // Step 1: Extract topics from LLM
-    const parsedTopics = await extractTopicsFromSyllabus(
+    const parsedTopics: any = await extractTopicsFromSyllabus(
       syllabus.rawText,
       preferences,
       syllabus.preferredLanguage
     );
+
+    console.log({ parsedTopics });
 
     // Step 2: Create topic entities
     const initialTopics = parsedTopics.map((t: any) =>
@@ -45,13 +47,15 @@ export const parseTopics = async (req: Request, res: Response) => {
         syllabus,
         title: t.title,
         estimatedTimeMinutes: t.estimatedTime || 5,
+        summary: t.summary,
+        keywords: t?.keywords || [],
       })
     );
 
     console.log("initialTopics", initialTopics);
 
     // Step 3: Schedule based on daily limit
-    const scheduledTopics = scheduleTopicsByDate({
+    const scheduledTopics = await scheduleTopicsByDate({
       topics: initialTopics,
       startDate: new Date(),
       dailyLimit: dailyMinutes,
@@ -92,7 +96,7 @@ export const parseTopics = async (req: Request, res: Response) => {
 export const getTopicsForSyllabus = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const syllabusId = Number(req.params.id);
-
+  console.log({ userId, syllabusId });
   const syllabus = await syllabusRepo.findOne({
     where: { id: syllabusId },
     relations: ["user"],
@@ -105,6 +109,20 @@ export const getTopicsForSyllabus = async (req: Request, res: Response) => {
 
   const topics = await topicRepo.find({
     where: { syllabus: { id: syllabusId } },
+    relations: ["quizzes"],
+    select: {
+      quizzes: {
+        id: true,
+        level: true,
+        totalQuestions: true,
+      },
+      id: true,
+      title: true,
+      // summary: true,
+      estimatedTimeMinutes: true,
+      dayIndex: true,
+      assignedDate: true,
+    },
     order: { dayIndex: "ASC" },
   });
 

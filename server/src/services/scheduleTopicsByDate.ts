@@ -1,5 +1,7 @@
 import moment from "moment";
 import { Topic } from "../models/Topic";
+import { LoggingService } from "./logging.service";
+import { LogLevel, LogSource } from "../models/Log";
 
 interface ScheduleParams {
   topics: Topic[];
@@ -16,19 +18,39 @@ export const scheduleTopicsByDate = ({
   dailyLimit,
 }: ScheduleParams): Topic[] => {
   const scheduledTopics: Topic[] = [];
-  let currentDate = moment(startDate);
+  // Use UTC for consistent date handling
+  let currentDate = moment.utc(startDate).startOf("day");
   let currentDayTime = 0;
 
-  for (const topic of topics) {
-    const topicTime = topic.estimatedTimeMinutes;
+  console.log("Scheduling with params:", {
+    startDate: currentDate.format(),
+    dailyLimit,
+    totalTopics: topics.length,
+  });
 
+  for (const topic of topics) {
+    const topicTime = topic.estimatedTimeMinutes || 0;
+
+    console.log("Current day time:", currentDayTime);
+    console.log("Topic time:", topicTime);
+    console.log("Daily limit:", dailyLimit);
+
+    // If adding this topic would exceed daily limit, move to next day
     if (currentDayTime + topicTime > dailyLimit) {
-      // move to next day
-      currentDate.add(1, "day");
+      currentDate = currentDate.add(1, "day");
       currentDayTime = 0;
     }
 
-    topic.assignedDate = currentDate.toDate();
+    // Create a new date object for the assigned date
+    const assignedDate = currentDate.toDate();
+    console.log("Assigning topic:", {
+      title: topic.title,
+      time: topicTime,
+      date: assignedDate,
+      dayTime: currentDayTime,
+    });
+
+    topic.assignedDate = assignedDate;
     currentDayTime += topicTime;
 
     scheduledTopics.push(topic);

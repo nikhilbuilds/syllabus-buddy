@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node src/app.ts",
-    "dev": "ts-node-dev --respawn --transpile-only src/app.ts"
+    "dev": "nodemon src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "worker": "nodemon src/workers/index.ts",
+    "worker:prod": "node dist/workers/index.js"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +33,7 @@
     "pg": "^8.16.0",
     "reflect-metadata": "^0.2.2",
     "sendgrid": "^5.2.3",
+    "tesseract.js": "^6.0.1",
     "typeorm": "^0.3.24"
   },
   "devDependencies": {
@@ -43,7 +47,9 @@
     "@types/node": "^22.15.21",
     "@types/pdf-parse": "^1.1.5",
     "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.3"
   }
 }

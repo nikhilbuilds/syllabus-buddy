@@ -1,5 +1,5 @@
 import { Router } from "express";
-import multer from "multer";
+import { upload } from "../config/multer.config";
 import {
   getSyllabus,
   uploadSyllabus,
@@ -7,6 +7,7 @@ import {
   renameSyllabus,
   getSyllabusById,
   createSyllabus,
+  uploadSyllabusQueue,
 } from "../controllers/syllabus.controller";
 import { requireAuth } from "../middlewares/auth.middleware";
 import {
@@ -14,10 +15,15 @@ import {
   parseTopics,
 } from "../controllers/topic.controller";
 
-const upload = multer({ dest: "uploads/" });
 const router = Router();
 
 router.post("/upload", requireAuth, upload.single("file"), uploadSyllabus);
+router.post(
+  "/upload-queue",
+  requireAuth,
+  upload.single("file"),
+  uploadSyllabusQueue
+);
 router.post("/create", requireAuth, createSyllabus);
 router.post("/:id/parse-topics", requireAuth, parseTopics);
 router.get("/", requireAuth, getSyllabus);

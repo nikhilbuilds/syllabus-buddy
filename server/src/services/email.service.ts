@@ -1,4 +1,5 @@
 import sgMail from "@sendgrid/mail";
+import { QuizLevel } from "../constants/quiz";
 
 export class EmailService {
   static {
@@ -65,6 +66,28 @@ export class EmailService {
           Best regards,<br>
           The StudyApp Team
         </p>
+      </div>
+    `;
+
+    await this.sendEmail(email, subject, html);
+  }
+
+  static async sendQuizReadyEmail(
+    email: string,
+    name: string,
+    syllabusId: string,
+    level?: QuizLevel
+  ): Promise<void> {
+    const subject = "Your Quiz is Ready! ";
+    const levelText = level ? `for the ${level.toLowerCase()} level` : "";
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Welcome to StudyApp, ${name}!</h2>
+        <p>Your quiz ${levelText} is ready to be taken. Click the button below to start:</p>
+        <a href="${process.env.APP_URL}/quiz/${syllabusId}" 
+           style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+          Start Quiz
+        </a>
       </div>
     `;
 

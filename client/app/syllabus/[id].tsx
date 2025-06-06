@@ -23,12 +23,18 @@ interface Topic {
   title: string;
   dayIndex: number;
   estimatedTimeMinutes: number;
+  quizzes: {
+    id: number;
+    level: string;
+    totalQuestions: number;
+  }[];
 }
 
 interface SyllabusDetail {
   id: number;
   title: string;
   topics: Topic[];
+  status: "pending" | "completed" | "failed";
 }
 
 interface Question {
@@ -54,7 +60,6 @@ export default function SyllabusDetailScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [syllabus, setSyllabus] = useState<SyllabusDetail | null>(null);
-  const [isParsingTopics, setIsParsingTopics] = useState(false);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [dailyMinutes, setDailyMinutes] = useState("");
@@ -65,10 +70,12 @@ export default function SyllabusDetailScreen() {
     QuizLevel.BEGINNER
   );
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
   const fetchTopics = async () => {
     try {
       const response = await axiosInstance.get(`/syllabus/${id}/topics`);
+      console.log("response.data========>", id);
       setSyllabus(response.data);
     } catch (error) {
       console.error("Error fetching syllabus topics:", error);
@@ -77,6 +84,11 @@ export default function SyllabusDetailScreen() {
 
   useEffect(() => {
     fetchTopics();
+    // Set up polling for status updates
+    if (syllabus?.topics.length === 0) {
+      const interval = setInterval(fetchTopics, 10000); // Poll every 10 seconds
+      return () => clearInterval(interval);
+    }
   }, [id]);
 
   const parseTopics = async () => {
@@ -90,7 +102,6 @@ export default function SyllabusDetailScreen() {
 
   const handleSubmit = async () => {
     setModalVisible(false);
-    setIsParsingTopics(true);
     try {
       const response = await axiosInstance.post(
         `/syllabus/${id}/parse-topics`,
@@ -105,13 +116,22 @@ export default function SyllabusDetailScreen() {
     } catch (error) {
       console.error("Error parsing topics:", error);
       Alert.alert("Error", "Failed to parse topics");
-    } finally {
-      setIsParsingTopics(false);
     }
   };
 
-  const handleTopicPress = async (topicId: number) => {
-    setSelectedTopicId(topicId);
+  const handleTopicPress = async (topic: Topic) => {
+    console.log("topicId", topic);
+
+    if (topic.quizzes.length === 0) {
+      Alert.alert(
+        "Error",
+        "The quiz is not generated yet, we will notify you when it is ready"
+      );
+      return;
+    }
+
+    setSelectedTopicId(topic.id);
+    setSelectedTopic(topic);
     setQuizModalVisible(true);
   };
 
@@ -119,18 +139,15 @@ export default function SyllabusDetailScreen() {
     setQuizModalVisible(false);
     try {
       setIsGeneratingQuiz(true);
-      const response = await axiosInstance.post(
-        `/quiz/generate/${selectedTopicId}`,
-        {
-          level: selectedLevel,
-        }
-      );
 
-      if (response.data.quizId) {
+      const topic = syllabus?.topics.find((t) => t.id === selectedTopicId);
+      const quiz = topic?.quizzes.find((q) => q.level === selectedLevel);
+
+      if (quiz) {
         router.push({
           pathname: "/quiz/[id]",
           params: {
-            id: response.data.quizId,
+            id: quiz.id,
             syllabusId: id,
             returnTo: "topics",
           },
@@ -147,7 +164,7 @@ export default function SyllabusDetailScreen() {
   const renderTopicItem = ({ item }: { item: Topic }) => (
     <TouchableOpacity
       style={styles.topicItem}
-      onPress={() => handleTopicPress(item.id)}
+      onPress={() => handleTopicPress(item)}
     >
       <View style={styles.topicContent}>
         <View style={styles.dayBadge}>
@@ -163,6 +180,54 @@ export default function SyllabusDetailScreen() {
       </View>
     </TouchableOpacity>
   );
+
+  const renderEmptyState = () => {
+    if (syllabus?.status === "pending") {
+      return (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color="#FFD700" />
+          <Text style={styles.emptyTitle}>Processing Your Syllabus</Text>
+          <Text style={styles.emptySubtitle}>
+            We're analyzing your syllabus and creating a personalized study
+            plan. This may take a few minutes.
+          </Text>
+        </View>
+      );
+    }
+
+    if (syllabus?.status === "failed") {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={64}
+            color="#FF3B30"
+            style={styles.emptyIcon}
+          />
+          <Text style={styles.emptyTitle}>Processing Failed</Text>
+          <Text style={styles.emptySubtitle}>
+            We encountered an error while processing your syllabus. Please try
+            again later.
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons
+          name="document-text-outline"
+          size={64}
+          color="#666"
+          style={styles.emptyIcon}
+        />
+        <Text style={styles.emptyTitle}>No Study Plan Yet</Text>
+        <Text style={styles.emptySubtitle}>
+          Your study plan is being prepared. Please check back in a few minutes.
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <>
@@ -185,22 +250,7 @@ export default function SyllabusDetailScreen() {
             showsVerticalScrollIndicator={false}
           />
         ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons
-              name="document-text-outline"
-              size={64}
-              color="#666"
-              style={styles.emptyIcon}
-            />
-            <Text style={styles.emptyTitle}>No Study Plan Yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Create a personalized study plan from your syllabus content
-            </Text>
-            <TouchableOpacity style={styles.parseButton} onPress={parseTopics}>
-              <Ionicons name="analytics-outline" size={20} color="white" />
-              <Text style={styles.parseButtonText}>Create Study Plan</Text>
-            </TouchableOpacity>
-          </View>
+          renderEmptyState()
         )}
 
         {/* Study Preferences Modal */}
@@ -261,25 +311,34 @@ export default function SyllabusDetailScreen() {
           <View style={styles.centeredView}>
             <View style={styles.modalView}>
               <Text style={styles.modalTitle}>Select Quiz Level</Text>
-              {Object.values(QuizLevel).map((level) => (
-                <TouchableOpacity
-                  key={level}
-                  style={[
-                    styles.levelOption,
-                    selectedLevel === level && styles.selectedLevel,
-                  ]}
-                  onPress={() => setSelectedLevel(level)}
-                >
-                  <Text
+              {/* {selectedTopic?.quizzes.find((quiz) => quiz.level === selectedLevel)} */}
+              {Object.values(QuizLevel).map((level) => {
+                const isDisabled = !selectedTopic?.quizzes.find(
+                  (quiz) => quiz.level === level
+                );
+                return (
+                  <TouchableOpacity
+                    key={level}
                     style={[
-                      styles.levelText,
-                      selectedLevel === level && styles.selectedLevelText,
+                      styles.levelOption,
+                      selectedLevel === level && styles.selectedLevel,
+                      isDisabled && styles.disabledLevel,
                     ]}
+                    disabled={isDisabled}
+                    onPress={() => setSelectedLevel(level)}
                   >
-                    {level.charAt(0).toUpperCase() + level.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.levelText,
+                        selectedLevel === level && styles.selectedLevelText,
+                        isDisabled && styles.disabledLevelText,
+                      ]}
+                    >
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
               <View style={styles.modalButtons}>
                 <TouchableOpacity
                   style={[styles.button, styles.buttonCancel]}
@@ -291,7 +350,7 @@ export default function SyllabusDetailScreen() {
                   style={[styles.button, styles.buttonSubmit]}
                   onPress={handleQuizGenerate}
                 >
-                  <Text style={styles.buttonText}>Generate Quiz</Text>
+                  <Text style={styles.buttonText}>Play Quiz</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -299,12 +358,10 @@ export default function SyllabusDetailScreen() {
         </Modal>
 
         {/* Loading Overlay */}
-        {(isParsingTopics || isGeneratingQuiz) && (
+        {isGeneratingQuiz && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="white" />
-            <Text style={styles.loadingText}>
-              {isParsingTopics ? "Parsing topics..." : "Generating quiz..."}
-            </Text>
+            <Text style={styles.loadingText}>Generating quiz...</Text>
           </View>
         )}
       </View>
@@ -546,6 +603,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
   emptyIcon: {
     marginBottom: 20,
@@ -555,10 +613,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: darkTheme.colors.text,
     marginBottom: 10,
+    textAlign: "center",
   },
   emptySubtitle: {
     fontSize: 16,
     color: darkTheme.colors.textSecondary,
     textAlign: "center",
+    lineHeight: 22,
+  },
+  disabledLevel: {
+    backgroundColor: darkTheme.colors.background,
+    borderColor: darkTheme.colors.border,
+    opacity: 0.5,
+  },
+  disabledLevelText: {
+    color: darkTheme.colors.textSecondary,
   },
 });

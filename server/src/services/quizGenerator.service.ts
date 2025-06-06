@@ -49,49 +49,52 @@ export const generateQuiz = async (
 ): Promise<QuizQuestion[]> => {
   const languageName = LanguageCodes[language as keyof typeof LanguageCodes];
 
-  const prompt = `Generate exactly ${questionCount} ${
-    level ? `${level.toLowerCase()}-level` : ""
-  } multiple-choice questions for the topic: "${topicTitle}".
-  
-  ${
-    syllabusContext
-      ? `Use the following syllabus context if relevant:\n${syllabusContext}`
-      : ""
-  }
-  
-  IMPORTANT REQUIREMENTS:
-  1. Each question MUST have ALL four fields: question, options, answer, explanation
-  2. The "answer" field must be exactly one of: "A", "B", "C", or "D"
-  3. All options (A, B, C, D) must be filled with meaningful content
-  4. The explanation must be detailed and educational
-  5. Do not leave any field empty or undefined
-  
-  ${
-    language
-      ? `Provide the response in ${languageName}. Only translate the question, options, and explanation — keep the JSON structure intact.`
-      : ""
-  }
-  
-  Return only a valid JSON array in this exact format:
-  [
-    {
-      "question": "Your question here",
-      "options": {
-        "A": "Option A text",
-        "B": "Option B text", 
-        "C": "Option C text",
-        "D": "Option D text"
-      },
-      "answer": "A",
-      "explanation": "Detailed explanation here"
-    }
-  ]
-  
-  Make sure to generate exactly ${questionCount} complete questions with all required fields.`;
+  console.log({ syllabusContext });
+
+  const prompt = `Generate at least 15 multiple-choice questions at the **${level}** level for the topic: "${topicTitle}".
+
+${
+  syllabusContext
+    ? `Use the following syllabus context if relevant:\n${syllabusContext}`
+    : ""
+}
+
+IMPORTANT REQUIREMENTS:
+1. Each question MUST have ALL of the following fields: question, options, answer, explanation, and level.
+2. The "answer" field must be exactly one of: "A", "B", "C", or "D".
+3. All options (A, B, C, D) must be filled with meaningful content.
+4. The explanation must be detailed and educational.
+5. Generate at least 15 questions at this level.
+6. Do not leave any field empty or undefined.
+
+${
+  language
+    ? `Provide the response in ${languageName}. Only translate the question, options, and explanation — keep the JSON structure intact.`
+    : ""
+}
+
+Return only a valid JSON array in the exact format below:
+[
+  {
+    "question": "Your question here",
+    "options": {
+      "A": "Option A text",
+      "B": "Option B text",
+      "C": "Option C text",
+      "D": "Option D text"
+    },
+    "answer": "A",
+    "explanation": "Detailed explanation here",
+  },
+  ...
+]
+
+Make sure to generate at least 15 complete questions at the ${level} level with all required fields.
+`;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini", //"gpt-4.1-nano",,
       messages: [
         {
           role: "system",
@@ -104,7 +107,7 @@ export const generateQuiz = async (
         },
       ],
       temperature: 0.7,
-      max_tokens: 3000,
+      max_tokens: 8000,
     });
 
     const content = completion.choices[0]?.message?.content;
@@ -129,6 +132,7 @@ export const generateQuiz = async (
     let quizData: any[];
     try {
       quizData = JSON.parse(cleanedContent);
+      console.log("=========>Quiz Data<=========", { quizData });
     } catch (parseError) {
       console.error("JSON Parse Error:", parseError);
       console.error("Content that failed to parse:", cleanedContent);
@@ -176,6 +180,8 @@ export const generateQuiz = async (
       throw new Error("No valid questions generated");
     }
 
+    console.log({ validQuestions });
+
     return validQuestions;
   } catch (error) {
     console.error("Error generating quiz:", error);
@@ -196,7 +202,7 @@ export const generateQuizWithRetry = async (
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(
-        `Quiz generation attempt ${attempt}/${maxRetries} for topic: ${topicTitle}`
+        `Quiz generation attempt ${attempt}/${maxRetries} for topic: ${topicTitle} for level: ${level}`
       );
 
       const questions = await generateQuiz(
@@ -212,16 +218,19 @@ export const generateQuizWithRetry = async (
 
       if (questions.length >= minAcceptableQuestions) {
         console.log(
-          `Successfully generated ${questions.length}/${questionCount} questions on attempt ${attempt}`
+          `Successfully generated ${questions.length}/${questionCount} questions on attempt ${attempt} for level: ${level}`
         );
         return questions;
       } else {
         throw new Error(
-          `Only generated ${questions.length}/${questionCount} valid questions`
+          `Only generated ${questions.length}/${questionCount} valid questions for level: ${level}`
         );
       }
     } catch (error) {
-      console.error(`Quiz generation attempt ${attempt} failed:`, error);
+      console.error(
+        `Quiz generation attempt ${attempt}, level: ${level} failed:`,
+        error
+      );
       lastError = error as Error;
 
       if (attempt < maxRetries) {

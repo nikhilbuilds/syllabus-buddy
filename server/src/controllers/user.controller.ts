@@ -3,7 +3,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { AppDataSource } from "../db/data-source";
 import { User } from "../models/User";
-import { PushNotificationService } from "../services/pushNotification.service";
 import { EmailService } from "../services/email.service";
 import crypto from "crypto";
 
@@ -111,7 +110,7 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
-export const logoutUser = (req: Request, res: Response) => {
+export const logoutUser = (_req: Request, res: Response) => {
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully" });
   return;

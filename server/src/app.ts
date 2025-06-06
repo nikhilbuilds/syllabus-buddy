@@ -13,6 +13,7 @@ import onboardingRoutes from "./routes/onboarding.routes";
 import { NotificationWorker } from "./workers/notificationWorker";
 import { StreakMonitorService } from "./services/streakMonitor.service";
 import cron from "node-cron";
+import { SyllabusWorker } from "./workers/syllabusWorker";
 dotenv.config();
 
 const app = express();
@@ -33,8 +34,19 @@ createAppDataSource()
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-    const worker = new NotificationWorker();
-    worker.start();
+    if (process.env.RUN_WORKERS === "true") {
+      console.log("Starting workers with config:", {
+        queueUrl: process.env.SQS_QUEUE_URL,
+        runWorkers: process.env.RUN_WORKERS,
+      });
+
+      // Start both workers
+      Promise.all([NotificationWorker.start(), SyllabusWorker.start()]).catch(
+        (error) => {
+          console.error("Error starting workers:", error);
+        }
+      );
+    }
 
     // Cron job that runs every 6 hours (at 00:00, 06:00, 12:00, 18:00)
     cron.schedule("0 */6 * * *", async () => {

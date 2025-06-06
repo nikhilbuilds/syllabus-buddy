@@ -1,12 +1,8 @@
 import AWS from "aws-sdk";
+import { User } from "../models/User";
+import { configureAWS } from "../config/aws.config";
 
-AWS.config.update({
-  region: process.env.AWS_REGION || "ap-south-1",
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
-
-const sqs = new AWS.SQS();
+const { sqs } = configureAWS();
 
 export interface QueueMessage {
   notificationId: number;
@@ -14,6 +10,13 @@ export interface QueueMessage {
   type: string;
   channel: string;
   data: any;
+}
+
+export interface SyllabusProcessingJob {
+  syllabusId: number;
+  user: User;
+  filePath: string;
+  preferredLanguage: string;
 }
 
 export class QueueService {
@@ -72,6 +75,43 @@ export class QueueService {
       await sqs.deleteMessage(params).promise();
     } catch (error) {
       console.error("Error deleting message from SQS:", error);
+      throw error;
+    }
+  }
+
+  static async enqueueSyllabusProcessing(
+    job: SyllabusProcessingJob
+  ): Promise<void> {
+    const params = {
+      QueueUrl: this.QUEUE_URL,
+      MessageBody: JSON.stringify(job),
+      MessageAttributes: {
+        jobType: {
+          DataType: "String",
+          StringValue: "syllabus-processing",
+        },
+      },
+    };
+
+    console.log("Attempting to send message to SQS:", {
+      queueUrl: this.QUEUE_URL,
+      syllabusId: job.syllabusId,
+      messageBody: JSON.stringify(job).substring(0, 100) + "...", // Log first 100 chars
+    });
+
+    try {
+      const result = await sqs.sendMessage(params).promise();
+      console.log("Successfully sent to SQS:", {
+        MessageId: result.MessageId,
+        syllabusId: job.syllabusId,
+        queueUrl: this.QUEUE_URL,
+      });
+    } catch (error) {
+      console.error("SQS Send Error:", {
+        error,
+        queueUrl: this.QUEUE_URL,
+        syllabusId: job.syllabusId,
+      });
       throw error;
     }
   }

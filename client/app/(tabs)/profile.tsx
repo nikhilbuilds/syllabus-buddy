@@ -3,6 +3,7 @@ import { useAuth } from "../../context/auth";
 import { darkTheme } from "@/constants/theme";
 import { useEffect, useState } from "react";
 import axiosInstance from "@/config/axios";
+import { LANGUAGES } from "@/constants/language";
 
 export default function ProfileScreen() {
   const { signOut, isLoading, user } = useAuth();
@@ -10,8 +11,16 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const response = await axiosInstance.get("/users");
-      setUserData(response.data.user);
+      const response = await axiosInstance.get("/users/profile");
+      const language = LANGUAGES.find(
+        (lang) => lang.code === response.data.user.preferredLanguage
+      );
+
+      setUserData({
+        ...response.data.user,
+        language: language?.name,
+        icon: language?.icon,
+      });
     };
     fetchUserData();
   }, [user]);
@@ -28,6 +37,13 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.label}>Email</Text>
         <Text style={styles.value}>{userData?.email}</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.label}>Preffered Languagge</Text>
+        <Text style={styles.value}>
+          {userData?.language} {userData?.icon}
+        </Text>
       </View>
 
       <TouchableOpacity

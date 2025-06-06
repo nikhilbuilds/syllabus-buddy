@@ -3,10 +3,12 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  OneToMany,
   CreateDateColumn,
-  JoinColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { Topic } from "./Topic";
+import { QuizQuestion } from "./QuizQuestion";
 import { QuizLevel } from "../constants/quiz";
 
 @Entity()
@@ -14,20 +16,24 @@ export class Quiz {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @ManyToOne(() => Topic)
-  @JoinColumn({ name: "topic_id" })
+  @ManyToOne(() => Topic, (topic) => topic.quizzes)
   topic!: Topic;
-
-  @Column({ default: true })
-  generatedByAi!: boolean;
 
   @Column({
     type: "enum",
     enum: QuizLevel,
-    nullable: false,
   })
   level!: QuizLevel;
 
+  @Column({ default: 0 })
+  totalQuestions!: number;
+
+  @OneToMany(() => QuizQuestion, (question) => question.quiz, { cascade: true })
+  questions!: QuizQuestion[];
+
   @CreateDateColumn()
   createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }
