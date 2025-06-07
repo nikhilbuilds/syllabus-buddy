@@ -59,7 +59,21 @@
     "email": "ईमेल",
     "password": "पासवर्ड",
     "name": "नाम",
-    "preferred_language": "पसंदीदा भाषा"
+    "preferred_language": "पसंदीदा भाषा",
+    "forgot_password": "पासवर्ड भूल गए",
+    "forgot_password_description": "अपना ईमेल पता दर्ज करें और हम आपको पासवर्ड रीसेट करने का लिंक भेजेंगे।",
+    "send_reset_link": "रीसेट लिंक भेजें",
+    "reset_link_sent": "पासवर्ड रीसेट लिंक आपके ईमेल पर भेज दिया गया है।",
+    "back_to_login": "लॉगिन पर वापस जाएं",
+    "email_required": "ईमेल आवश्यक है",
+    "forgot_password_error": "रीसेट लिंक भेजने में विफल। कृपया पुनः प्रयास करें।",
+    "reset_password": "पासवर्ड रीसेट करें",
+    "new_password": "नया पासवर्ड",
+    "confirm_password": "पासवर्ड की पुष्टि करें",
+    "password_mismatch": "पासवर्ड मेल नहीं खाते",
+    "password_required": "पासवर्ड आवश्यक है",
+    "password_min_length": "पासवर्ड कम से कम 8 अक्षर का होना चाहिए",
+    "reset_success": "पासवर्ड सफलतापूर्वक रीसेट कर दिया गया है"
   },
   "profile": {
     "profile": "प्रोफ़ाइल",

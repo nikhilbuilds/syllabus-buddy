@@ -1,19 +1,28 @@
-import { Router } from "express";
+import express from "express";
+import { authenticateToken } from "../middleware/auth.middleware";
 import {
   registerUser,
   loginUser,
-  logoutUser,
   getProfile,
+  forgotPassword,
+  resetPassword,
+  logoutUser,
   resendVerificationEmail,
 } from "../controllers/user.controller";
 import { handleSocialLogin } from "../controllers/social.controller";
-import { requireAuth } from "../middlewares/auth.middleware";
-const router = Router();
 
+const router = express.Router();
+
+// Auth routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/social", handleSocialLogin);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
+
 router.post("/logout", logoutUser);
-router.get("/profile", requireAuth, getProfile);
-router.post("/resend-verification", requireAuth, resendVerificationEmail);
+router.post("/resend-verification", authenticateToken, resendVerificationEmail);
+router.get("/profile", authenticateToken, getProfile);
+// router.put("/profile", authenticateToken, updateProfile);
+
 export default router;

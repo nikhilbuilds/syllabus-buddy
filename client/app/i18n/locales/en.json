@@ -59,7 +59,21 @@
     "email": "Email",
     "password": "Password",
     "name": "Name",
-    "preferred_language": "Preferred Language"
+    "preferred_language": "Preferred Language",
+    "forgot_password": "Forgot Password",
+    "forgot_password_description": "Enter your email address and we'll send you a link to reset your password.",
+    "send_reset_link": "Send Reset Link",
+    "reset_link_sent": "Password reset link has been sent to your email.",
+    "back_to_login": "Back to Login",
+    "email_required": "Email is required",
+    "forgot_password_error": "Failed to send reset link. Please try again.",
+    "reset_password": "Reset Password",
+    "new_password": "New Password",
+    "confirm_password": "Confirm Password",
+    "password_mismatch": "Passwords do not match",
+    "password_required": "Password is required",
+    "password_min_length": "Password must be at least 8 characters",
+    "reset_success": "Password has been reset successfully"
   },
   "profile": {
     "profile": "Profile",

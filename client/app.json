@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
-    "scheme": "studyapp",
+    "scheme": "syllabusbuddy",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/images/logo.png",
@@ -13,14 +13,17 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.syllabusbuddy.app",
+      "associatedDomains": ["applinks:syllabusbuddy.com"]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.syllabusbuddy.app"
     },
     "web": {
       "bundler": "metro",
@@ -51,10 +54,11 @@
       }
     },
     "linking": {
-      "prefixes": ["studyapp://", "https://yourdomain.com"],
+      "prefixes": ["syllabusbuddy://", "https://syllabusbuddy.com"],
       "config": {
         "screens": {
-          "verify-email": "verify-email"
+          "verify-email": "verify-email",
+          "reset-password": "reset-password"
         }
       }
     }

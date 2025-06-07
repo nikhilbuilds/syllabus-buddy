@@ -5,6 +5,9 @@ import { AppDataSource } from "../db/data-source";
 import { User } from "../models/User";
 import { EmailService } from "../services/email.service";
 import crypto from "crypto";
+import { createLog } from "../services/log.service";
+import { LogSource } from "../models/Log";
+import { MoreThan } from "typeorm";
 
 const userRepo = AppDataSource.getRepository(User);
 
@@ -203,5 +206,122 @@ export const resendVerificationEmail = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Resend verification error:", error);
     res.status(500).json({ error: "Failed to send verification email" });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({ message: "Email is required" });
+      return;
+    }
+
+    const user = await userRepo.findOne({ where: { email } });
+
+    if (!user) {
+      // Return success even if user doesn't exist for security
+      res.status(200).json({
+        message:
+          "If an account exists with this email, you will receive a password reset link",
+      });
+      return;
+    }
+
+    // Generate reset token
+    const resetToken = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET || "your-secret-key",
+      { expiresIn: "1h" }
+    );
+
+    // Store reset token in user record
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+    await userRepo.save(user);
+
+    // Send reset email
+    // const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+    await EmailService.sendPasswordResetEmail(
+      user.email,
+      user.name,
+      resetToken
+    );
+
+    await createLog({
+      userId: user.id,
+      source: LogSource.USER,
+      message: "Password reset requested",
+      metadata: { email: user.email },
+    });
+
+    res.status(200).json({
+      message:
+        "If an account exists with this email, you will receive a password reset link",
+    });
+    return;
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while processing your request" });
+    return;
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      res.status(400).json({ message: "Token and password are required" });
+      return;
+    }
+
+    // Verify token
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "your-secret-key"
+    ) as { userId: number };
+
+    const user = await userRepo.findOne({
+      where: {
+        id: decoded.userId,
+        resetToken: token,
+        resetTokenExpiry: MoreThan(new Date()),
+      },
+    });
+
+    if (!user) {
+      res.status(400).json({ message: "Invalid or expired reset token" });
+      return;
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update user's password and clear reset token
+    user.passwordHash = hashedPassword;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await userRepo.save(user);
+
+    await createLog({
+      userId: user.id,
+      source: LogSource.USER,
+      message: "Password reset completed",
+      metadata: { email: user.email },
+    });
+
+    res.status(200).json({ message: "Password has been reset successfully" });
+    return;
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while resetting your password" });
+    return;
   }
 };

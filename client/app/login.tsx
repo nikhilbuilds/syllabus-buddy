@@ -10,17 +10,19 @@ import {
 } from "react-native";
 import { useAuth } from "../context/auth";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 export default function Login() {
   const [email, setEmail] = useState("devnikhil0306@gmail.com");
   const [password, setPassword] = useState("helloWorld");
   const { signIn } = useAuth();
+  const { t } = useTranslation();
 
   const handleLogin = async () => {
     try {
       await signIn(email, password);
     } catch (error) {
-      Alert.alert("Error", "Login failed. Please check your credentials.");
+      console.error("Login error:", error);
     }
   };
 
@@ -33,30 +35,43 @@ export default function Login() {
           resizeMode="contain" //make it big
         />
       </View>
+      <Text style={styles.title}>{t("auth.login")}</Text>
+
       <TextInput
-        style={styles.input}
-        placeholder="Email"
+        style={[styles.input, { color: "#fff" }]}
+        placeholder={t("auth.email")}
         placeholderTextColor="#666"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
-        color="#fff"
+        keyboardType="email-address"
       />
+
       <TextInput
-        style={styles.input}
-        placeholder="Password"
+        style={[styles.input, { color: "#fff" }]}
+        placeholder={t("auth.password")}
         placeholderTextColor="#666"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        color="#fff"
       />
+
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+        <Text style={styles.buttonText}>{t("auth.login")}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
-        <Text style={styles.link}>Don't have an account? Sign up</Text>
+      <TouchableOpacity
+        style={styles.linkButton}
+        onPress={() => router.push("/forgot-password")}
+      >
+        <Text style={styles.linkText}>{t("auth.forgot_password")}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.linkButton}
+        onPress={() => router.push("/register")}
+      >
+        <Text style={styles.linkText}>{t("auth.signup")}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -65,8 +80,9 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     justifyContent: "center",
+    padding: 20,
+    backgroundColor: "#1a1a1a",
   },
   logoContainer: {
     alignItems: "center",
@@ -76,29 +92,39 @@ const styles = StyleSheet.create({
     width: 300,
     height: 150,
   },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 30,
+    color: "#ffffff",
+    textAlign: "center",
+  },
   input: {
-    height: 40,
+    height: 50,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#333",
     borderRadius: 8,
     marginBottom: 15,
-    paddingHorizontal: 10,
-    color: "#fff",
+    paddingHorizontal: 15,
   },
   button: {
-    backgroundColor: "#ffd33d",
+    backgroundColor: "#007AFF",
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
-    marginBottom: 10,
+    marginTop: 10,
   },
   buttonText: {
-    color: "#fff",
+    color: "#ffffff",
+    fontSize: 16,
     fontWeight: "bold",
   },
-  link: {
-    color: "#ffd33d",
-    textAlign: "center",
+  linkButton: {
     marginTop: 15,
+    alignItems: "center",
+  },
+  linkText: {
+    color: "#007AFF",
+    fontSize: 16,
   },
 });

@@ -66,6 +66,12 @@ export class User {
   @Column({ nullable: true })
   pushToken?: string;
 
+  @Column({ nullable: true })
+  resetToken?: string;
+
+  @Column({ nullable: true })
+  resetTokenExpiry?: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 

@@ -22,6 +22,7 @@ export enum LogSource {
   QUIZ_GENERATOR = "quiz-generator",
   USER_ACTION = "user-action",
   SYSTEM = "system",
+  USER = "user",
 }
 
 @Entity()
