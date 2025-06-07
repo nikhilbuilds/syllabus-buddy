@@ -1,7 +1,7 @@
 import fs from "fs";
 import pdfParse from "pdf-parse";
 import { AppDataSource } from "../db/data-source";
-import { Syllabus, SyllabusStatus } from "../models/Syllabus";
+import { Syllabus, SyllabusStatus, ProcessingStep } from "../models/Syllabus";
 import { Topic } from "../models/Topic";
 import { Quiz } from "../models/Quiz";
 import { QuizQuestion } from "../models/QuizQuestion";
@@ -54,12 +54,33 @@ const processQuizzesForLevel = async (
   const quizzes: Quiz[] = [];
   const questions: QuizQuestion[] = [];
 
-  // Update syllabus status for this level
-  await syllabusRepo.update(syllabus.id, {
-    stage: level,
-  });
+  console.log("Processing quizzes for level", { level, topics, syllabus });
+
+  // Check if this level is already processed
+  const processingState = syllabus.processingState || {
+    topicsSaved: false,
+    beginnerQuizSaved: false,
+    intermediateQuizSaved: false,
+    advancedQuizSaved: false,
+  };
+
+  const isLevelProcessed = {
+    [QuizLevel.BEGINNER]: processingState.beginnerQuizSaved,
+    [QuizLevel.INTERMEDIATE]: processingState.intermediateQuizSaved,
+    [QuizLevel.ADVANCED]: processingState.advancedQuizSaved,
+  }[level];
+
+  if (isLevelProcessed) {
+    console.log(`Skipping ${level} quiz generation as it's already processed`);
+    return { quizzes: [], questions: [] };
+  }
 
   try {
+    // Update syllabus status for this level
+    await syllabusRepo.update(syllabus.id, {
+      stage: level,
+    });
+
     for (const topic of topics) {
       const quizData = await generateQuizWithRetry(
         topic.title,
@@ -82,9 +103,28 @@ const processQuizzesForLevel = async (
       await sleep(1500);
     }
 
-    // Update syllabus status for this level
+    // Update processing state after successful quiz generation
+    const newProcessingState = { ...processingState };
+    switch (level) {
+      case QuizLevel.BEGINNER:
+        newProcessingState.beginnerQuizSaved = true;
+        break;
+      case QuizLevel.INTERMEDIATE:
+        newProcessingState.intermediateQuizSaved = true;
+        break;
+      case QuizLevel.ADVANCED:
+        newProcessingState.advancedQuizSaved = true;
+        break;
+    }
+
     await syllabusRepo.update(syllabus.id, {
       stage: level,
+      processingState: newProcessingState,
+      lastCompletedStep: {
+        [QuizLevel.BEGINNER]: ProcessingStep.BEGINNER_QUIZ_SAVED,
+        [QuizLevel.INTERMEDIATE]: ProcessingStep.INTERMEDIATE_QUIZ_SAVED,
+        [QuizLevel.ADVANCED]: ProcessingStep.ADVANCED_QUIZ_SAVED,
+      }[level],
     });
 
     return { quizzes, questions };
@@ -98,10 +138,28 @@ const processQuizzesForLevel = async (
 };
 
 const initializeSyllabus = async (syllabusId: number): Promise<Syllabus> => {
-  await syllabusRepo.update(syllabusId, {
-    status: SyllabusStatus.PROCESSING,
-    processingStartedAt: new Date(),
+  // First get the current syllabus state
+  const existingSyllabus = await syllabusRepo.findOne({
+    where: { id: syllabusId },
+    select: ["id", "status", "processingState"],
   });
+
+  // Only initialize processing state if it doesn't exist
+  const processingState = existingSyllabus?.processingState || {
+    topicsSaved: false,
+    beginnerQuizSaved: false,
+    intermediateQuizSaved: false,
+    advancedQuizSaved: false,
+  };
+
+  // Update only if not already processing
+  if (existingSyllabus?.status !== SyllabusStatus.PROCESSING) {
+    await syllabusRepo.update(syllabusId, {
+      status: SyllabusStatus.PROCESSING,
+      processingStartedAt: new Date(),
+      processingState,
+    });
+  }
 
   const syllabus = await syllabusRepo.findOne({
     where: { id: syllabusId },
@@ -112,6 +170,8 @@ const initializeSyllabus = async (syllabusId: number): Promise<Syllabus> => {
       "rawText",
       "status",
       "dailyStudyMinutes",
+      "processingState",
+      "lastCompletedStep",
     ],
   });
 
@@ -163,95 +223,131 @@ export const processSyllabus = async (
       syllabus.rawText ||
       (await extractTextFromFile(filePath, syllabus.preferredLanguage));
 
-    // Process topics
-    const parsedTopics: any = await extractTopicsFromSyllabus(
-      rawText,
-      "",
-      syllabus.preferredLanguage
-    );
+    let topics: Topic[] = [];
+    let beginnerResult: QuizGenerationResult | undefined;
 
-    await LoggingService.log(
-      LogLevel.INFO,
-      LogSource.SYLLABUS_PROCESSOR,
-      `Scheduled topics`,
-      { parsedTopics }
-    );
+    // Check if topics are already saved
+    if (!syllabus.processingState?.topicsSaved) {
+      // Process topics
+      const parsedTopics: any = await extractTopicsFromSyllabus(
+        rawText,
+        "",
+        syllabus.preferredLanguage
+      );
 
-    // Step 3: Schedule based on daily limit
-    const scheduledTopics = scheduleTopicsByDate({
-      topics: parsedTopics,
-      startDate: new Date(),
-      dailyLimit: syllabus.dailyStudyMinutes,
-    });
+      await LoggingService.log(
+        LogLevel.INFO,
+        LogSource.SYLLABUS_PROCESSOR,
+        `Scheduled topics`,
+        { parsedTopics }
+      );
 
-    // Step 4: Assign dayIndex in order of assignedDate
-    const sortedByDate = scheduledTopics.sort(
-      (a, b) => a.assignedDate!.getTime() - b.assignedDate!.getTime()
-    );
+      // Step 3: Schedule based on daily limit
+      const scheduledTopics = scheduleTopicsByDate({
+        topics: parsedTopics,
+        startDate: new Date(),
+        dailyLimit: syllabus.dailyStudyMinutes,
+      });
 
-    const dateToIndexMap = new Map<string, number>();
-    let index = 1;
+      // Step 4: Assign dayIndex in order of assignedDate
+      const sortedByDate = scheduledTopics.sort(
+        (a, b) => a.assignedDate!.getTime() - b.assignedDate!.getTime()
+      );
 
-    for (const topic of scheduledTopics) {
-      const dateStr = moment(topic.assignedDate).format("YYYY-MM-DD");
-      if (!dateToIndexMap.has(dateStr)) {
-        dateToIndexMap.set(dateStr, index++);
+      const dateToIndexMap = new Map<string, number>();
+      let index = 1;
+
+      for (const topic of scheduledTopics) {
+        const dateStr = moment(topic.assignedDate).format("YYYY-MM-DD");
+        if (!dateToIndexMap.has(dateStr)) {
+          dateToIndexMap.set(dateStr, index++);
+        }
+        topic.dayIndex = dateToIndexMap.get(dateStr)!;
       }
-      topic.dayIndex = dateToIndexMap.get(dateStr)!;
+
+      topics = await topicRepo.save(
+        sortedByDate.map((t: any) =>
+          topicRepo.create({
+            syllabus,
+            title: t.title,
+            estimatedTimeMinutes: t.estimatedTimeMinutes || 5,
+            summary: t.summary,
+            keywords: t.keywords || [],
+            assignedDate: t.assignedDate,
+            dayIndex: t.dayIndex,
+          })
+        )
+      );
+
+      // Update processing state after topics are saved
+      await syllabusRepo.update(syllabusId, {
+        processingState: {
+          ...syllabus.processingState,
+          topicsSaved: true,
+        },
+        lastCompletedStep: ProcessingStep.TOPICS_SAVED,
+      });
+
+      console.log("Topics=============>", topics);
+    } else {
+      // Get existing topics
+      topics = await topicRepo.find({
+        where: { syllabus: { id: syllabusId } },
+      });
     }
 
-    const topics = await topicRepo.save(
-      sortedByDate.map((t: any) =>
-        topicRepo.create({
-          syllabus,
-          title: t.title,
-          estimatedTimeMinutes: t.estimatedTimeMinutes || 5,
-          summary: t.summary,
-          keywords: t.keywords || [],
-          assignedDate: t.assignedDate,
-          dayIndex: t.dayIndex,
+    // Process Beginner quizzes if not already processed
+    if (!syllabus.processingState?.beginnerQuizSaved) {
+      beginnerResult = await processQuizzesForLevel(
+        topics,
+        QuizLevel.BEGINNER,
+        syllabus
+      );
+
+      console.log("Beginner result=============>", beginnerResult);
+
+      if (beginnerResult.quizzes.length > 0) {
+        await saveQuizData(beginnerResult.quizzes, beginnerResult.questions);
+        // Notify user that beginner quizzes are ready
+        await sendLevelCompletionNotification(
+          user,
+          syllabusId,
+          QuizLevel.BEGINNER
+        );
+      }
+    }
+
+    // Process Intermediate quizzes if not already processed
+    if (!syllabus.processingState?.intermediateQuizSaved) {
+      processQuizzesForLevel(topics, QuizLevel.INTERMEDIATE, syllabus)
+        .then(async (result) => {
+          if (result.quizzes.length > 0) {
+            await saveQuizData(result.quizzes, result.questions);
+            await sendLevelCompletionNotification(
+              user,
+              syllabusId,
+              QuizLevel.INTERMEDIATE
+            );
+          }
         })
-      )
-    );
+        .catch(console.error);
+    }
 
-    console.log("Topics=============>", topics);
-
-    // Process Beginner quizzes first
-    const beginnerResult = await processQuizzesForLevel(
-      topics,
-      QuizLevel.BEGINNER,
-      syllabus
-    );
-
-    console.log("Beginner result=============>", beginnerResult);
-
-    await saveQuizData(beginnerResult.quizzes, beginnerResult.questions);
-
-    // Notify user that beginner quizzes are ready
-    await sendLevelCompletionNotification(user, syllabusId, QuizLevel.BEGINNER);
-
-    // Process Intermediate and Advanced in background
-    processQuizzesForLevel(topics, QuizLevel.INTERMEDIATE, syllabus)
-      .then(async (result) => {
-        await saveQuizData(result.quizzes, result.questions);
-        await sendLevelCompletionNotification(
-          user,
-          syllabusId,
-          QuizLevel.INTERMEDIATE
-        );
-      })
-      .catch(console.error);
-
-    processQuizzesForLevel(topics, QuizLevel.ADVANCED, syllabus)
-      .then(async (result) => {
-        await saveQuizData(result.quizzes, result.questions);
-        await sendLevelCompletionNotification(
-          user,
-          syllabusId,
-          QuizLevel.ADVANCED
-        );
-      })
-      .catch(console.error);
+    // Process Advanced quizzes if not already processed
+    if (!syllabus.processingState?.advancedQuizSaved) {
+      processQuizzesForLevel(topics, QuizLevel.ADVANCED, syllabus)
+        .then(async (result) => {
+          if (result.quizzes.length > 0) {
+            await saveQuizData(result.quizzes, result.questions);
+            await sendLevelCompletionNotification(
+              user,
+              syllabusId,
+              QuizLevel.ADVANCED
+            );
+          }
+        })
+        .catch(console.error);
+    }
 
     // Finalize initial processing
     await syllabusRepo.update(syllabusId, {
@@ -264,7 +360,9 @@ export const processSyllabus = async (
 
     return {
       topicCount: topics.length,
-      quizCount: beginnerResult.quizzes.length,
+      quizCount: syllabus.processingState?.beginnerQuizSaved
+        ? 0
+        : beginnerResult?.quizzes.length || 0,
     };
   } catch (error) {
     await handleProcessingError(syllabusId, error, filePath);
