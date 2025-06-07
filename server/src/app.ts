@@ -14,6 +14,7 @@ import { NotificationWorker } from "./workers/notificationWorker";
 import { StreakMonitorService } from "./services/streakMonitor.service";
 import cron from "node-cron";
 import { SyllabusWorker } from "./workers/syllabusWorker";
+import feedbackRoutes from "./routes/feedback.routes";
 dotenv.config();
 
 const app = express();
@@ -28,6 +29,7 @@ app.use("/api/v1/progress", progressRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/test", testRoutes);
 app.use("/api/v1/onboarding", onboardingRoutes);
+app.use("/api/v1/feedback", feedbackRoutes);
 
 createAppDataSource()
   .then(() => {

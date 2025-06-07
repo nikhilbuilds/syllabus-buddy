@@ -7,7 +7,12 @@
     "back": "Back",
     "loading": "Loading...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit"
   },
   "dashboard": {
     "day": "Day",
@@ -60,7 +65,7 @@
     "password": "Password",
     "name": "Name",
     "preferred_language": "Preferred Language",
-    "forgot_password": "Forgot Password",
+    "forgot_password": "Forgot Password?",
     "forgot_password_description": "Enter your email address and we'll send you a link to reset your password.",
     "send_reset_link": "Send Reset Link",
     "reset_link_sent": "Password reset link has been sent to your email.",
@@ -68,12 +73,19 @@
     "email_required": "Email is required",
     "forgot_password_error": "Failed to send reset link. Please try again.",
     "reset_password": "Reset Password",
+    "reset_password_description": "Enter your new password below.",
     "new_password": "New Password",
     "confirm_password": "Confirm Password",
-    "password_mismatch": "Passwords do not match",
-    "password_required": "Password is required",
-    "password_min_length": "Password must be at least 8 characters",
-    "reset_success": "Password has been reset successfully"
+    "password_reset_success": "Password has been reset successfully.",
+    "password_mismatch": "Passwords do not match.",
+    "password_required": "Password is required.",
+    "password_min_length": "Password must be at least 6 characters.",
+    "invalid_email": "Please enter a valid email address.",
+    "login_success": "Login successful.",
+    "login_error": "Invalid email or password.",
+    "signup_success": "Account created successfully.",
+    "signup_error": "Error creating account.",
+    "logout_success": "Logged out successfully."
   },
   "profile": {
     "profile": "Profile",
@@ -81,6 +93,89 @@
     "email": "Email",
     "preferred_language": "Preferred Language",
     "logout": "Logout",
-    "logging_out": "Logging out..."
+    "logging_out": "Logging out...",
+    "title": "Profile",
+    "account": "Account",
+    "language": "Language",
+    "support": "Support",
+    "contact_support": "Contact Support",
+    "contact_support_desc": "Get help from our support team",
+    "faq": "Frequently Asked Questions",
+    "faq_desc": "Find answers to common questions",
+    "feedback": "Send Feedback",
+    "feedback_desc": "Help us improve the app",
+    "tutorial": "How to Use",
+    "tutorial_desc": "Learn how to use the app",
+    "sign_out": "Sign Out"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Find answers to common questions about Syllabus Buddy",
+    "how_to_upload": "How do I upload a syllabus?",
+    "how_to_upload_answer": "To upload a syllabus, go to the home screen and tap the '+' button. Select your syllabus file (PDF or image) and follow the prompts to complete the upload.",
+    "supported_formats": "What file formats are supported?",
+    "supported_formats_answer": "We currently support PDF files and images (JPEG, PNG, GIF). Make sure your file is clear and readable for best results.",
+    "processing_time": "How long does it take to process a syllabus?",
+    "processing_time_answer": "Processing time varies depending on the file size and complexity. Most syllabi are processed within 1-2 minutes. You can track the progress in real-time.",
+    "edit_syllabus": "Can I edit my syllabus after uploading?",
+    "edit_syllabus_answer": "Yes, you can edit your syllabus at any time. Go to the syllabus details page and tap the edit button to make changes to topics, dates, or other information.",
+    "delete_syllabus": "How do I delete a syllabus?",
+    "delete_syllabus_answer": "To delete a syllabus, go to the syllabus details page, tap the menu button (three dots), and select 'Delete'. Confirm your choice to permanently remove the syllabus.",
+    "privacy": "Is my syllabus data private?",
+    "privacy_answer": "Yes, your syllabus data is completely private. We use secure encryption and never share your data with third parties. You can read our privacy policy for more details.",
+    "contact_support": "Still have questions?",
+    "contact_button": "Contact Support",
+    "email_client_error": "Unable to open email client. Please email us at support@syllabusbuddy.com"
+  },
+  "feedback": {
+    "title": "Send Feedback",
+    "subtitle": "Help us improve Syllabus Buddy",
+    "category": "Feedback Category",
+    "categories": {
+      "bug": "Bug Report",
+      "feature": "Feature Request",
+      "improvement": "Improvement",
+      "other": "Other"
+    },
+    "message": "Your Feedback",
+    "placeholder": "Tell us what you think...",
+    "submit": "Submit Feedback",
+    "submitting": "Submitting...",
+    "success": {
+      "title": "Thank You!",
+      "message": "Your feedback has been submitted successfully."
+    },
+    "error": {
+      "title": "Error",
+      "empty": "Please enter your feedback before submitting.",
+      "no_category": "Please select a feedback category.",
+      "submit": "Failed to submit feedback. Please try again."
+    }
+  },
+  "tutorial": {
+    "title": "How to Use Syllabus Buddy",
+    "subtitle": "Learn how to make the most of your syllabus",
+    "step1": {
+      "title": "Upload Your Syllabus",
+      "description": "Start by uploading your syllabus file. We support PDF and image formats. Make sure your file is clear and readable."
+    },
+    "step2": {
+      "title": "Review and Edit",
+      "description": "After processing, review the extracted information. You can edit topics, dates, and other details to ensure accuracy."
+    },
+    "step3": {
+      "title": "Track Progress",
+      "description": "Monitor your progress through the syllabus. Mark topics as completed and get reminders for upcoming deadlines."
+    },
+    "step4": {
+      "title": "Generate Quizzes",
+      "description": "Create quizzes from your syllabus content to test your knowledge and prepare for exams."
+    },
+    "tips": {
+      "title": "Pro Tips",
+      "tip1": "Use clear, high-quality images for best results",
+      "tip2": "Regularly update your progress to stay on track",
+      "tip3": "Enable notifications to never miss a deadline"
+    }
   }
 }

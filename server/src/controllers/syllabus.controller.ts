@@ -11,7 +11,7 @@ import { User } from "../models/User";
 import { LogSource } from "../models/Log";
 import { LoggingService } from "../services/logging.service";
 import { LogLevel } from "../models/Log";
-import { S3Service } from "../services/s3.service";
+import { getFileContent } from "../services/getFileContent.service";
 
 const syllabusRepo = AppDataSource.getRepository(Syllabus);
 const userRepo = AppDataSource.getRepository(User);
@@ -99,7 +99,11 @@ export const uploadSyllabusQueue = async (req: Request, res: Response) => {
       return;
     }
 
-    const user = await userRepo.findOneBy({ id: userId });
+    const user = await userRepo.findOne({
+      where: { id: userId },
+      select: { id: true, email: true, name: true },
+    });
+
     if (!user) {
       res.status(404).json({
         success: false,
@@ -113,7 +117,8 @@ export const uploadSyllabusQueue = async (req: Request, res: Response) => {
     try {
       // First try direct parsing for PDF and text files
       if (file.mimetype === "application/pdf") {
-        const parsed = await pdfParse(file.buffer);
+        const fileBuffer = await getFileContent(file.location);
+        const parsed = await pdfParse(fileBuffer);
         rawText = parsed.text.replace(/\x00/g, "").trim();
       } else if (file.mimetype === "text/plain") {
         rawText = file.buffer.toString("utf-8").replace(/\x00/g, "").trim();

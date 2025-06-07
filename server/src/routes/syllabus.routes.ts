@@ -26,10 +26,10 @@ router.post(
 );
 
 router.post(
-  "/upload/queue",
+  "/upload-queue",
   authenticateToken,
-  validateFileType,
   uploadMiddleware.single("file"),
+  validateFileType,
   uploadSyllabusQueue,
   errorHandler
 );

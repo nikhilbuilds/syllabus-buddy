@@ -145,6 +145,7 @@ export default function UploadModal({
       handleClose();
       onSuccess(response.data.syllabusId);
     } catch (error) {
+      console.log("error==========>", JSON.stringify(error));
       console.error("Error creating syllabus:", error);
       Alert.alert("Error", "Failed to create syllabus. Please try again.");
     } finally {
