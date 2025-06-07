@@ -64,7 +64,7 @@ export const extractTopicsFromSyllabus = async (
     for (const [index, chunk] of chunks.entries()) {
       console.log(`Processing chunk ${index + 1}/${chunks.length}`);
 
-      const systemPrompt = `You are a syllabus parser. Given a messy or structured syllabus chunk, extract a **list of at least 12 clear and distinct topics or units** suitable for creating multiple-choice quizzes.
+      const systemPrompt = `You are a syllabus parser. Given a messy or structured syllabus chunk, extract a **list of at least 1 clear and distinct topics or units** suitable for creating multiple-choice quizzes.
 
   ${
     preferences
@@ -98,7 +98,7 @@ Return only a valid JSON array in the exact format below:
 Important:
 - Return only valid JSON.
 - Do not include any explanations, notes, or markdown — just the JSON.
-- Ensure at least 12 topics are extracted.
+- Ensure at least 1 topics are extracted.
 - Make sure every topic includes all required fields with consistent formatting.
 `;
 

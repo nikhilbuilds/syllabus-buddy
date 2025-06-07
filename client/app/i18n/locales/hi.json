@@ -1,0 +1,72 @@
+{
+  "common": {
+    "welcome": "सिलेबस बडी में आपका स्वागत है",
+    "start_quiz": "क्विज़ शुरू करें",
+    "next_question": "अगला प्रश्न",
+    "submit": "जमा करें",
+    "back": "वापस",
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "success": "सफल"
+  },
+  "dashboard": {
+    "day": "दिन",
+    "progress": "प्रगति",
+    "streak": "स्ट्रीक",
+    "quizzes": "क्विज़",
+    "upcoming_topics": "आने वाले विषय",
+    "topics": "विषय",
+    "quiz_ready": "क्विज़ तैयार",
+    "completion_rate": "पूर्णता दर",
+    "total_topics": "कुल विषय"
+  },
+  "syllabus": {
+    "syllabus": "सिलेबस",
+    "my_syllabuses": "मेरे सिलेबस",
+    "upload": "सिलेबस अपलोड करें",
+    "processing": "सिलेबस प्रोसेस हो रहा है",
+    "topics": "विषय",
+    "quizzes": "क्विज़",
+    "beginner": "शुरुआती",
+    "intermediate": "मध्यम",
+    "advanced": "उन्नत",
+    "daily_study": "दैनिक अध्ययन समय",
+    "minutes": "मिनट",
+    "day": "दिन",
+    "estimated_time": "अनुमानित समय",
+    "status": {
+      "pending": "प्रतीक्षारत",
+      "processing": "प्रोसेस हो रहा है",
+      "completed": "पूर्ण",
+      "error": "त्रुटि"
+    }
+  },
+  "quiz": {
+    "start": "क्विज़ शुरू करें",
+    "next": "अगला प्रश्न",
+    "previous": "पिछला प्रश्न",
+    "finish": "क्विज़ समाप्त करें",
+    "score": "आपका स्कोर",
+    "correct": "सही",
+    "incorrect": "गलत",
+    "time_remaining": "शेष समय",
+    "seconds": "सेकंड"
+  },
+  "auth": {
+    "login": "लॉग इन",
+    "signup": "साइन अप",
+    "logout": "लॉग आउट",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "name": "नाम",
+    "preferred_language": "पसंदीदा भाषा"
+  },
+  "profile": {
+    "profile": "प्रोफ़ाइल",
+    "name": "नाम",
+    "email": "ईमेल",
+    "preferred_language": "पसंदीदा भाषा",
+    "logout": "लॉग आउट",
+    "logging_out": "लॉग आउट हो रहा है..."
+  }
+}

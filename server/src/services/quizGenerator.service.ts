@@ -49,9 +49,7 @@ export const generateQuiz = async (
 ): Promise<QuizQuestion[]> => {
   const languageName = LanguageCodes[language as keyof typeof LanguageCodes];
 
-  console.log({ syllabusContext });
-
-  const prompt = `Generate at least 15 multiple-choice questions at the **${level}** level for the topic: "${topicTitle}".
+  const prompt = `Generate at least 1 multiple-choice questions at the **${level}** level for the topic: "${topicTitle}".
 
 ${
   syllabusContext
@@ -64,7 +62,7 @@ IMPORTANT REQUIREMENTS:
 2. The "answer" field must be exactly one of: "A", "B", "C", or "D".
 3. All options (A, B, C, D) must be filled with meaningful content.
 4. The explanation must be detailed and educational.
-5. Generate at least 15 questions at this level.
+5. Generate at least 1 questions at this level.
 6. Do not leave any field empty or undefined.
 
 ${
@@ -89,7 +87,7 @@ Return only a valid JSON array in the exact format below:
   ...
 ]
 
-Make sure to generate at least 15 complete questions at the ${level} level with all required fields.
+Make sure to generate at least 1 complete questions at the ${level} level with all required fields.
 `;
 
   try {
@@ -193,7 +191,7 @@ export const generateQuizWithRetry = async (
   topicTitle: string,
   syllabusContext?: string,
   level?: QuizLevel,
-  questionCount: number = 5,
+  questionCount: number = 1,
   language?: string,
   maxRetries: number = 2
 ): Promise<QuizQuestion[]> => {

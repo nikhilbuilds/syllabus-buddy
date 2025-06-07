@@ -109,7 +109,7 @@ export const getTopicsForSyllabus = async (req: Request, res: Response) => {
 
   const topics = await topicRepo.find({
     where: { syllabus: { id: syllabusId } },
-    relations: ["quizzes"],
+    relations: ["quizzes", "syllabus"],
     select: {
       quizzes: {
         id: true,
@@ -118,7 +118,6 @@ export const getTopicsForSyllabus = async (req: Request, res: Response) => {
       },
       id: true,
       title: true,
-      // summary: true,
       estimatedTimeMinutes: true,
       dayIndex: true,
       assignedDate: true,

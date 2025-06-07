@@ -8,12 +8,16 @@ import { LoadingScreen } from "@/components/loading-screen";
 import { darkTheme } from "../constants/theme";
 import { NotificationService } from "@/services/notificationService";
 import onboardingService from "../services/onboardingService";
+import { useLanguage } from "./hooks/useLanguage";
+import "./i18n/config"; // Import i18n config
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const { session, isLoading } = useAuth();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const { currentLanguage } = useLanguage(); // Initialize language
 
   useEffect(() => {
     if (!isLoading) {

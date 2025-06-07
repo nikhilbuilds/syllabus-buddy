@@ -17,10 +17,11 @@ export enum LogLevel {
 
 export enum LogSource {
   SYLLABUS_QUEUE = "syllabus-queue",
-  NOTIFICATION_QUEUE = "notification-queue",
   SYLLABUS_PROCESSOR = "syllabus-processor",
-  TOPIC_PARSER = "topic-parser",
+  SYLLABUS_UPLOAD = "syllabus-upload",
   QUIZ_GENERATOR = "quiz-generator",
+  USER_ACTION = "user-action",
+  SYSTEM = "system",
 }
 
 @Entity()

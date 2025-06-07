@@ -1,0 +1,72 @@
+{
+  "common": {
+    "welcome": "Welcome to Syllabus Buddy",
+    "start_quiz": "Start Quiz",
+    "next_question": "Next Question",
+    "submit": "Submit",
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "dashboard": {
+    "day": "Day",
+    "progress": "Progress",
+    "streak": "Streak",
+    "quizzes": "Quizzes",
+    "upcoming_topics": "Upcoming Topics",
+    "topics": "Topics",
+    "quiz_ready": "Quiz Ready",
+    "completion_rate": "Completion Rate",
+    "total_topics": "Total Topics"
+  },
+  "syllabus": {
+    "syllabus": "Syllabus",
+    "my_syllabuses": "My Syllabuses",
+    "upload": "Upload Syllabus",
+    "processing": "Processing Syllabus",
+    "topics": "Topics",
+    "quizzes": "Quizzes",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "daily_study": "Daily Study Time",
+    "minutes": "minutes",
+    "day": "Day",
+    "estimated_time": "Estimated Time",
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "error": "Error"
+    }
+  },
+  "quiz": {
+    "start": "Start Quiz",
+    "next": "Next Question",
+    "previous": "Previous Question",
+    "finish": "Finish Quiz",
+    "score": "Your Score",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "time_remaining": "Time Remaining",
+    "seconds": "seconds"
+  },
+  "auth": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "preferred_language": "Preferred Language"
+  },
+  "profile": {
+    "profile": "Profile",
+    "name": "Name",
+    "email": "Email",
+    "preferred_language": "Preferred Language",
+    "logout": "Logout",
+    "logging_out": "Logging out..."
+  }
+}

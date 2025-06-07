@@ -11,6 +11,7 @@ import {
 import axiosInstance from "@/config/axios";
 import { darkTheme } from "@/constants/theme";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 interface Topic {
   topicId: number;
@@ -65,6 +66,7 @@ export default function HomeScreen() {
   const [attemptedQuizzes, setAttemptedQuizzes] = useState<AttemptedQuiz[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const { t } = useTranslation();
 
   const fetchData = async () => {
     try {
@@ -170,9 +172,11 @@ export default function HomeScreen() {
       )}
       {dashboard.topics.length > 0 && (
         <View style={styles.statsContainer}>
-          <Text style={styles.dayText}>Day {dashboard.currentStreak}</Text>
+          <Text style={styles.dayText}>
+            {t("dashboard.day")} {dashboard.currentStreak}
+          </Text>
           <Text style={styles.progressText}>
-            Progress: {stats?.completionRate}%
+            {t("dashboard.progress")}: {stats?.completionRate}%
           </Text>
           <View style={styles.progressBar}>
             <View
@@ -185,15 +189,19 @@ export default function HomeScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statNumber}>{stats?.currentStreak}</Text>
-              <Text style={styles.statLabel}>Streak</Text>
+              <Text style={styles.statLabel}> {t("dashboard.streak")}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statNumber}>{stats?.completionRate}%</Text>
-              <Text style={styles.statLabel}>Completion Rate</Text>
+              <Text style={styles.statLabel}>
+                {t("dashboard.completion_rate")}
+              </Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statNumber}>{stats?.totalTopics}</Text>
-              <Text style={styles.statLabel}>Total Topics</Text>
+              <Text style={styles.statLabel}>
+                {t("dashboard.total_topics")}
+              </Text>
             </View>
             {/* <View style={styles.statBox}>
             <Text style={styles.statNumber}>{stats?.completedTopics}</Text>
@@ -204,7 +212,9 @@ export default function HomeScreen() {
       )}
       {dashboard.topics.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Upcoming Topics</Text>
+          <Text style={styles.sectionTitle}>
+            {t("dashboard.upcoming_topics")}
+          </Text>
           {dashboard.topics.map((topic) => (
             <View key={topic.topicId} style={styles.topicCard}>
               <Text style={styles.topicTitle}>{topic.topicTitle}</Text>
@@ -213,14 +223,21 @@ export default function HomeScreen() {
                   {topic.quizAttempted ? (
                     <View style={styles.scoreContainer}>
                       <Text style={styles.scoreText}>
-                        Score: {topic.score ?? 0}/{topic.totalQuestions}
+                        {t("quiz.score")}: {topic.score ?? 0}/
+                        {topic.totalQuestions}
                       </Text>
-                      <Text style={styles.completedText}>Completed</Text>
+                      <Text style={styles.completedText}>
+                        Completed {t("dashboard.completed")}
+                      </Text>
                     </View>
                   ) : topic.quizGenerated ? (
-                    <Text style={styles.pendingText}>Quiz Ready</Text>
+                    <Text style={styles.pendingText}>
+                      {t("dashboard.quiz_ready")}
+                    </Text>
                   ) : (
-                    <Text style={styles.pendingText}>Not Started</Text>
+                    <Text style={styles.pendingText}>
+                      {t("dashboard.not_started")}
+                    </Text>
                   )}
                 </View>
                 <Text style={styles.dateText}>

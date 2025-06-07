@@ -15,6 +15,7 @@ import axiosInstance from "@/config/axios";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAuth } from "@/context/auth";
 import { LANGUAGES } from "@/constants/language";
+import { useTranslation } from "react-i18next";
 
 interface Syllabus {
   id: number;
@@ -25,6 +26,8 @@ interface Syllabus {
 export default function SyllabusScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useTranslation();
+
   const [syllabuses, setSyllabuses] = useState<Syllabus[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,7 +67,7 @@ export default function SyllabusScreen() {
   const handleSyllabusPress = (syllabusId: number, syllabusTitle: string) => {
     router.push({
       pathname: "/syllabus/[id]",
-      params: { id: Number(syllabusId), title: syllabusTitle },
+      params: { id: Number(syllabusId) },
     });
   };
 
@@ -168,7 +171,7 @@ export default function SyllabusScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Syllabuses</Text>
+        <Text style={styles.title}>{t("syllabus.my_syllabuses")}</Text>
         <TouchableOpacity
           style={styles.refreshButton}
           onPress={onRefresh}

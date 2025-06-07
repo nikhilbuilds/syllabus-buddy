@@ -19,6 +19,20 @@ import { getQuizQuestionCount } from "./generateQuizCount";
 import { LogLevel, LogSource } from "../models/Log";
 import { LoggingService } from "./logging.service";
 import { extractTextFromFile } from "./llmTextExtractor.service";
+import { S3Service } from "./s3.service";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { URL } from "url";
+import { Readable } from "stream";
+
+// Initialize S3 client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || "us-east-1",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+  },
+});
 
 // Repositories
 const syllabusRepo = AppDataSource.getRepository(Syllabus);
@@ -49,10 +63,25 @@ interface QuizLevelStatus {
 const processQuizzesForLevel = async (
   topics: Topic[],
   level: QuizLevel,
-  syllabus: Syllabus
+  syllabusId: number
 ): Promise<QuizGenerationResult> => {
   const quizzes: Quiz[] = [];
   const questions: QuizQuestion[] = [];
+
+  const syllabus = await syllabusRepo
+    .createQueryBuilder("syllabus")
+    .select([
+      "syllabus.id",
+      "syllabus.status",
+      "syllabus.processingState",
+      "syllabus.lastCompletedStep",
+    ])
+    .where("syllabus.id = :syllabusId", { syllabusId })
+    .getOne();
+
+  if (!syllabus) {
+    throw new Error("Syllabus not found");
+  }
 
   console.log("Processing quizzes for level", { level, topics, syllabus });
 
@@ -77,9 +106,12 @@ const processQuizzesForLevel = async (
 
   try {
     // Update syllabus status for this level
-    await syllabusRepo.update(syllabus.id, {
-      stage: level,
-    });
+    await syllabusRepo
+      .createQueryBuilder()
+      .update(Syllabus)
+      .set({ stage: level })
+      .where("id = :syllabusId", { syllabusId })
+      .execute();
 
     for (const topic of topics) {
       const quizData = await generateQuizWithRetry(
@@ -117,32 +149,49 @@ const processQuizzesForLevel = async (
         break;
     }
 
-    await syllabusRepo.update(syllabus.id, {
-      stage: level,
-      processingState: newProcessingState,
-      lastCompletedStep: {
-        [QuizLevel.BEGINNER]: ProcessingStep.BEGINNER_QUIZ_SAVED,
-        [QuizLevel.INTERMEDIATE]: ProcessingStep.INTERMEDIATE_QUIZ_SAVED,
-        [QuizLevel.ADVANCED]: ProcessingStep.ADVANCED_QUIZ_SAVED,
-      }[level],
-    });
+    await syllabusRepo
+      .createQueryBuilder()
+      .update(Syllabus)
+      .set({
+        stage: level,
+        processingState: newProcessingState,
+        lastCompletedStep: {
+          [QuizLevel.BEGINNER]: ProcessingStep.BEGINNER_QUIZ_SAVED,
+          [QuizLevel.INTERMEDIATE]: ProcessingStep.INTERMEDIATE_QUIZ_SAVED,
+          [QuizLevel.ADVANCED]: ProcessingStep.ADVANCED_QUIZ_SAVED,
+        }[level],
+      })
+      .where("id = :syllabusId", { syllabusId })
+      .execute();
 
     return { quizzes, questions };
   } catch (error) {
-    await syllabusRepo.update(syllabus.id, {
-      stage: level,
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
+    await syllabusRepo
+      .createQueryBuilder()
+      .update(Syllabus)
+      .set({
+        stage: level,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      })
+      .where("id = :syllabusId", { syllabusId })
+      .execute();
     throw error;
   }
 };
 
 const initializeSyllabus = async (syllabusId: number): Promise<Syllabus> => {
   // First get the current syllabus state
-  const existingSyllabus = await syllabusRepo.findOne({
-    where: { id: syllabusId },
-    select: ["id", "status", "processingState"],
-  });
+
+  const existingSyllabus = await syllabusRepo
+    .createQueryBuilder("syllabus")
+    .select([
+      "syllabus.id",
+      "syllabus.status",
+      "syllabus.processingState",
+      "syllabus.lastCompletedStep",
+    ])
+    .where("syllabus.id = :syllabusId", { syllabusId })
+    .getOne();
 
   // Only initialize processing state if it doesn't exist
   const processingState = existingSyllabus?.processingState || {
@@ -161,19 +210,21 @@ const initializeSyllabus = async (syllabusId: number): Promise<Syllabus> => {
     });
   }
 
-  const syllabus = await syllabusRepo.findOne({
-    where: { id: syllabusId },
-    select: [
-      "id",
-      "title",
-      "preferredLanguage",
-      "rawText",
-      "status",
-      "dailyStudyMinutes",
-      "processingState",
-      "lastCompletedStep",
-    ],
-  });
+  const syllabus = await syllabusRepo
+    .createQueryBuilder("syllabus")
+    .select([
+      "syllabus.id",
+      "syllabus.title",
+      "syllabus.preferredLanguage",
+      "syllabus.rawText",
+      "syllabus.status",
+      "syllabus.dailyStudyMinutes",
+      "syllabus.processingState",
+      "syllabus.lastCompletedStep",
+      "syllabus.filePath",
+    ])
+    .where("syllabus.id = :syllabusId", { syllabusId })
+    .getOne();
 
   if (!syllabus) throw new Error("Syllabus not found");
   if (syllabus.status === SyllabusStatus.COMPLETED) {
@@ -198,30 +249,111 @@ const saveQuizData = async (quizzes: Quiz[], questions: QuizQuestion[]) => {
 const handleProcessingError = async (
   syllabusId: number,
   error: any,
-  filePath: string
+  fileKey: string
 ) => {
+  console.error("Error processing syllabus:", error);
+
+  // Update syllabus status
   await syllabusRepo.update(syllabusId, {
-    status: SyllabusStatus.FAILED,
-    errorMessage: error instanceof Error ? error.message : String(error),
-    processingCompletedAt: new Date(),
+    status: SyllabusStatus.ERROR,
+    errorMessage: error.message || "Unknown error occurred",
   });
 
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  // Log the error
+  await LoggingService.log(
+    LogLevel.ERROR,
+    LogSource.SYLLABUS_PROCESSOR,
+    "Error processing syllabus",
+    { syllabusId, error: error.message }
+  );
+
+  // Delete the file from S3
+  // try {
+  //   await S3Service.deleteFile(fileKey);
+  // } catch (deleteError) {
+  //   console.error("Error deleting file from S3:", deleteError);
+  // }
+};
+
+const getFileContent = async (filePath: string): Promise<Buffer> => {
+  try {
+    // Extract the key from the S3 URL
+    const url = new URL(filePath);
+    const key = url.pathname.substring(1); // Remove leading slash
+
+    const command = new GetObjectCommand({
+      Bucket: "syllabus-buddy",
+      Key: key,
+    });
+
+    const response = await s3Client.send(command);
+
+    if (!response.Body) {
+      throw new Error("S3 response Body is empty");
+    }
+
+    const stream = response.Body as Readable;
+
+    // Convert stream to buffer
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    return Buffer.concat(chunks);
+  } catch (error) {
+    console.error("Error reading file from S3:", error);
+    throw error;
+  }
 };
 
 // Modify the main processing function
 export const processSyllabus = async (
   syllabusId: number,
   user: User,
-  filePath: string
+  fileKey: string
 ): Promise<ProcessingResult> => {
   try {
-    console.log("Processing syllabus", { syllabusId, user, filePath });
+    console.log("Processing syllabus", { syllabusId, user, fileKey });
     // Initialize
     const syllabus = await initializeSyllabus(syllabusId);
-    const rawText =
-      syllabus.rawText ||
-      (await extractTextFromFile(filePath, syllabus.preferredLanguage));
+
+    let rawText = syllabus?.rawText || "";
+
+    if (!rawText) {
+      // Get file from S3
+      const fileBuffer = await getFileContent(syllabus.filePath);
+
+      // Determine file type from file path
+      const fileExtension = syllabus.filePath.split(".").pop()?.toLowerCase();
+      let fileType = "application/pdf"; // default to PDF
+
+      if (fileExtension === "txt") {
+        fileType = "text/plain";
+      } else if (["jpg", "jpeg"].includes(fileExtension || "")) {
+        fileType = "image/jpeg";
+      } else if (fileExtension === "png") {
+        fileType = "image/png";
+      } else if (fileExtension === "gif") {
+        fileType = "image/gif";
+      }
+
+      // Extract text from file
+      rawText = await extractTextFromFile(fileBuffer, fileType);
+
+      // Update syllabus with extracted text
+      await syllabusRepo.update(syllabusId, {
+        rawText,
+        lastCompletedStep: ProcessingStep.TEXT_EXTRACTED,
+      });
+
+      await LoggingService.log(
+        LogLevel.INFO,
+        LogSource.SYLLABUS_PROCESSOR,
+        "Text extracted from file",
+        { syllabusId, textLength: rawText.length, fileType }
+      );
+    }
 
     let topics: Topic[] = [];
     let beginnerResult: QuizGenerationResult | undefined;
@@ -301,7 +433,7 @@ export const processSyllabus = async (
       beginnerResult = await processQuizzesForLevel(
         topics,
         QuizLevel.BEGINNER,
-        syllabus
+        syllabusId
       );
 
       console.log("Beginner result=============>", beginnerResult);
@@ -319,34 +451,45 @@ export const processSyllabus = async (
 
     // Process Intermediate quizzes if not already processed
     if (!syllabus.processingState?.intermediateQuizSaved) {
-      processQuizzesForLevel(topics, QuizLevel.INTERMEDIATE, syllabus)
-        .then(async (result) => {
-          if (result.quizzes.length > 0) {
-            await saveQuizData(result.quizzes, result.questions);
-            await sendLevelCompletionNotification(
-              user,
-              syllabusId,
-              QuizLevel.INTERMEDIATE
-            );
-          }
-        })
-        .catch(console.error);
+      let intermediateResult: QuizGenerationResult | undefined;
+
+      intermediateResult = await processQuizzesForLevel(
+        topics,
+        QuizLevel.INTERMEDIATE,
+        syllabusId
+      );
+
+      if (intermediateResult.quizzes.length > 0) {
+        await saveQuizData(
+          intermediateResult.quizzes,
+          intermediateResult.questions
+        );
+        await sendLevelCompletionNotification(
+          user,
+          syllabusId,
+          QuizLevel.INTERMEDIATE
+        );
+      }
     }
 
     // Process Advanced quizzes if not already processed
     if (!syllabus.processingState?.advancedQuizSaved) {
-      processQuizzesForLevel(topics, QuizLevel.ADVANCED, syllabus)
-        .then(async (result) => {
-          if (result.quizzes.length > 0) {
-            await saveQuizData(result.quizzes, result.questions);
-            await sendLevelCompletionNotification(
-              user,
-              syllabusId,
-              QuizLevel.ADVANCED
-            );
-          }
-        })
-        .catch(console.error);
+      let advancedResult: QuizGenerationResult | undefined;
+
+      advancedResult = await processQuizzesForLevel(
+        topics,
+        QuizLevel.ADVANCED,
+        syllabusId
+      );
+
+      if (advancedResult.quizzes.length > 0) {
+        await saveQuizData(advancedResult.quizzes, advancedResult.questions);
+        await sendLevelCompletionNotification(
+          user,
+          syllabusId,
+          QuizLevel.ADVANCED
+        );
+      }
     }
 
     // Finalize initial processing
@@ -356,7 +499,8 @@ export const processSyllabus = async (
       processingCompletedAt: new Date(),
     });
 
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    // Delete the file from S3 after processing
+    await S3Service.deleteFile(fileKey);
 
     return {
       topicCount: topics.length,
@@ -365,7 +509,7 @@ export const processSyllabus = async (
         : beginnerResult?.quizzes.length || 0,
     };
   } catch (error) {
-    await handleProcessingError(syllabusId, error, filePath);
+    await handleProcessingError(syllabusId, error, fileKey);
     throw error;
   }
 };

@@ -50,16 +50,72 @@ interface Question {
   explanation: string;
 }
 
-const LANGUAGES = [
-  { code: "en", name: "English", icon: "🇺🇸" },
-  { code: "hi", name: "Hindi", icon: "🇮🇳" },
-];
+const ProcessingState = ({
+  state,
+  label,
+}: {
+  state: boolean;
+  label: string;
+}) => (
+  <View style={styles.processingItem}>
+    <View style={styles.processingIconContainer}>
+      {state ? (
+        <Ionicons
+          name="checkmark-circle"
+          size={24}
+          color={darkTheme.colors.success}
+        />
+      ) : (
+        <ActivityIndicator size="small" color={darkTheme.colors.primary} />
+      )}
+    </View>
+    <Text style={styles.processingText}>{label}</Text>
+  </View>
+);
+
+const SkeletonLoader = () => (
+  <View style={styles.skeletonContainer}>
+    {/* Header Skeleton */}
+    <View style={styles.skeletonHeader}>
+      <View style={styles.skeletonTitle} />
+    </View>
+
+    {/* Processing Status Skeleton */}
+    <View style={styles.skeletonProcessingContainer}>
+      <View style={styles.skeletonProcessingHeader}>
+        <View style={styles.skeletonProcessingTitle} />
+      </View>
+      {[1, 2, 3, 4].map((item) => (
+        <View key={item} style={styles.skeletonProcessingItem}>
+          <View style={styles.skeletonIcon} />
+          <View style={styles.skeletonText} />
+        </View>
+      ))}
+    </View>
+
+    {/* Topics List Skeleton */}
+    <View style={styles.skeletonTopicsContainer}>
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((item) => (
+        <View key={item} style={styles.skeletonTopicItem}>
+          <View style={styles.skeletonTopicContent}>
+            <View style={styles.skeletonDayBadge} />
+            <View style={styles.skeletonTopicInfo}>
+              <View style={styles.skeletonTopicTitle} />
+              <View style={styles.skeletonTopicDuration} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  </View>
+);
 
 export default function SyllabusDetailScreen() {
-  const { id, title } = useLocalSearchParams<{ id: string; title: string }>();
-  const { user } = useAuth();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [syllabus, setSyllabus] = useState<SyllabusDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [syllabus, setSyllabus] = useState<any | null>(null);
+  const [topics, setTopics] = useState<SyllabusDetail | null>(null);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [dailyMinutes, setDailyMinutes] = useState("");
@@ -71,24 +127,38 @@ export default function SyllabusDetailScreen() {
   );
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  const [isProcessingExpanded, setIsProcessingExpanded] = useState(true);
+
+  const fetchSyllabus = async () => {
+    try {
+      const response = await axiosInstance.get(`/syllabus/${id}`);
+      if (response.data.processingState.topicsSaved) {
+        setIsProcessingExpanded(false);
+      }
+      setSyllabus(response.data);
+    } catch (error) {
+      console.error("Error fetching syllabus:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchTopics = async () => {
     try {
       const response = await axiosInstance.get(`/syllabus/${id}/topics`);
-      console.log("response.data========>", id);
-      setSyllabus(response.data);
+      setTopics(response.data);
     } catch (error) {
       console.error("Error fetching syllabus topics:", error);
     }
   };
 
   useEffect(() => {
-    fetchTopics();
-    // Set up polling for status updates
-    if (syllabus?.topics.length === 0) {
-      const interval = setInterval(fetchTopics, 10000); // Poll every 10 seconds
-      return () => clearInterval(interval);
-    }
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchSyllabus(), fetchTopics()]);
+      setLoading(false);
+    };
+    loadData();
   }, [id]);
 
   const parseTopics = async () => {
@@ -140,7 +210,7 @@ export default function SyllabusDetailScreen() {
     try {
       setIsGeneratingQuiz(true);
 
-      const topic = syllabus?.topics.find((t) => t.id === selectedTopicId);
+      const topic = topics?.topics.find((t) => t.id === selectedTopicId);
       const quiz = topic?.quizzes.find((q) => q.level === selectedLevel);
 
       if (quiz) {
@@ -182,7 +252,7 @@ export default function SyllabusDetailScreen() {
   );
 
   const renderEmptyState = () => {
-    if (syllabus?.status === "pending") {
+    if (topics?.status === "pending") {
       return (
         <View style={styles.emptyContainer}>
           <ActivityIndicator size="large" color="#FFD700" />
@@ -195,7 +265,7 @@ export default function SyllabusDetailScreen() {
       );
     }
 
-    if (syllabus?.status === "failed") {
+    if (topics?.status === "failed") {
       return (
         <View style={styles.emptyContainer}>
           <Ionicons
@@ -229,21 +299,74 @@ export default function SyllabusDetailScreen() {
     );
   };
 
+  if (loading) {
+    return (
+      <>
+        <Stack.Screen
+          options={{
+            title: "Loading...",
+            headerStyle: {
+              backgroundColor: "#25292e",
+            },
+            headerTintColor: "#fff",
+          }}
+        />
+        <SkeletonLoader />
+      </>
+    );
+  }
+
   return (
     <>
       <Stack.Screen
         options={{
-          title: title || "Syllabus",
+          title: syllabus?.title || "Syllabus",
           headerStyle: {
             backgroundColor: "#25292e",
           },
           headerTintColor: "#fff",
         }}
       />
+
+      <TouchableOpacity
+        style={styles.processingHeader}
+        onPress={() => setIsProcessingExpanded(!isProcessingExpanded)}
+      >
+        <View style={styles.processingHeaderContent}>
+          <Text style={styles.processingTitle}> Status</Text>
+          <Ionicons
+            name={isProcessingExpanded ? "chevron-up" : "chevron-down"}
+            size={24}
+            color={darkTheme.colors.text}
+          />
+        </View>
+      </TouchableOpacity>
+
+      {isProcessingExpanded && (
+        <View style={styles.processingContainer}>
+          <ProcessingState
+            state={!!syllabus?.processingState?.topicsSaved}
+            label="Creating Study Plan"
+          />
+          <ProcessingState
+            state={!!syllabus?.processingState?.beginnerQuizSaved}
+            label="Generating Beginner Quizzes"
+          />
+          <ProcessingState
+            state={!!syllabus?.processingState?.intermediateQuizSaved}
+            label="Generating Intermediate Quizzes"
+          />
+          <ProcessingState
+            state={!!syllabus?.processingState?.advancedQuizSaved}
+            label="Generating Advanced Quizzes"
+          />
+        </View>
+      )}
+
       <View style={styles.container}>
-        {syllabus && syllabus.topics && syllabus.topics.length > 0 ? (
+        {topics && topics.topics && topics.topics.length > 0 ? (
           <FlatList
-            data={syllabus.topics}
+            data={topics.topics}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderTopicItem}
             contentContainerStyle={styles.listContainer}
@@ -368,7 +491,6 @@ export default function SyllabusDetailScreen() {
     </>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -628,5 +750,137 @@ const styles = StyleSheet.create({
   },
   disabledLevelText: {
     color: darkTheme.colors.textSecondary,
+  },
+  processingHeader: {
+    backgroundColor: darkTheme.colors.card,
+    padding: 15,
+    marginHorizontal: 15,
+    marginTop: 15,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    borderWidth: 1,
+    borderColor: darkTheme.colors.border,
+  },
+  processingHeaderContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  processingTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: darkTheme.colors.text,
+  },
+  processingContainer: {
+    backgroundColor: darkTheme.colors.card,
+    padding: 15,
+    marginHorizontal: 15,
+    marginBottom: 15,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: darkTheme.colors.border,
+  },
+  processingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  processingIconContainer: {
+    width: 24,
+    marginRight: 12,
+  },
+  processingText: {
+    fontSize: 14,
+    color: darkTheme.colors.text,
+    flex: 1,
+  },
+  skeletonContainer: {
+    flex: 1,
+    backgroundColor: darkTheme.colors.background,
+  },
+  skeletonHeader: {
+    padding: 20,
+    backgroundColor: darkTheme.colors.card,
+  },
+  skeletonTitle: {
+    height: 24,
+    width: "60%",
+    backgroundColor: darkTheme.colors.border,
+    borderRadius: 4,
+  },
+  skeletonProcessingContainer: {
+    margin: 15,
+    backgroundColor: darkTheme.colors.card,
+    borderRadius: 10,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: darkTheme.colors.border,
+  },
+  skeletonProcessingHeader: {
+    marginBottom: 15,
+  },
+  skeletonProcessingTitle: {
+    height: 20,
+    width: "40%",
+    backgroundColor: darkTheme.colors.border,
+    borderRadius: 4,
+  },
+  skeletonProcessingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  skeletonIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: darkTheme.colors.border,
+    marginRight: 12,
+  },
+  skeletonText: {
+    height: 16,
+    flex: 1,
+    backgroundColor: darkTheme.colors.border,
+    borderRadius: 4,
+  },
+  skeletonTopicsContainer: {
+    padding: 20,
+  },
+  skeletonTopicItem: {
+    backgroundColor: darkTheme.colors.card,
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: darkTheme.colors.border,
+  },
+  skeletonTopicContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  skeletonDayBadge: {
+    width: 60,
+    height: 24,
+    backgroundColor: darkTheme.colors.border,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  skeletonTopicInfo: {
+    flex: 1,
+  },
+  skeletonTopicTitle: {
+    height: 16,
+    width: "80%",
+    backgroundColor: darkTheme.colors.border,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  skeletonTopicDuration: {
+    height: 14,
+    width: "40%",
+    backgroundColor: darkTheme.colors.border,
+    borderRadius: 4,
   },
 });

@@ -17,10 +17,12 @@ export enum SyllabusStatus {
   PENDING = "pending",
   PROCESSING = "processing",
   COMPLETED = "completed",
+  ERROR = "error",
   FAILED = "failed",
 }
 
 export enum ProcessingStep {
+  TEXT_EXTRACTED = "text_extracted",
   TOPICS_SAVED = "topics_saved",
   BEGINNER_QUIZ_SAVED = "beginner_quiz_saved",
   INTERMEDIATE_QUIZ_SAVED = "intermediate_quiz_saved",
@@ -37,9 +39,6 @@ export class Syllabus {
 
   @Column("text", { nullable: true })
   rawText!: string;
-
-  @Column({ nullable: true })
-  uploadedFileUrl!: string;
 
   @Column({ nullable: true })
   filePath!: string; // Local file path for processing

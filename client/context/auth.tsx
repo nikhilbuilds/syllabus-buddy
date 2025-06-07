@@ -25,6 +25,7 @@ interface User {
   isEmailVerified: boolean;
   isOnboardingComplete: boolean;
   needsNewVerificationEmail?: boolean;
+  preferredLanguage: string;
 }
 
 const AuthContext = createContext<AuthContextType>({

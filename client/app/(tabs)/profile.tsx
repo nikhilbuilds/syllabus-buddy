@@ -4,11 +4,12 @@ import { darkTheme } from "@/constants/theme";
 import { useEffect, useState } from "react";
 import axiosInstance from "@/config/axios";
 import { LANGUAGES } from "@/constants/language";
+import { useTranslation } from "react-i18next";
 
 export default function ProfileScreen() {
   const { signOut, isLoading, user } = useAuth();
   const [userData, setUserData] = useState<any>(user);
-
+  const { t } = useTranslation();
   useEffect(() => {
     const fetchUserData = async () => {
       const response = await axiosInstance.get("/users/profile");
@@ -27,20 +28,20 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
+      <Text style={styles.title}>{t("profile.profile")}</Text>
 
       <View style={styles.section}>
-        <Text style={styles.label}>Name</Text>
+        <Text style={styles.label}>{t("profile.name")}</Text>
         <Text style={styles.value}>{userData?.name}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>{t("profile.email")}</Text>
         <Text style={styles.value}>{userData?.email}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.label}>Preffered Languagge</Text>
+        <Text style={styles.label}>{t("profile.preferred_language")}</Text>
         <Text style={styles.value}>
           {userData?.language} {userData?.icon}
         </Text>
@@ -52,7 +53,7 @@ export default function ProfileScreen() {
         disabled={isLoading}
       >
         <Text style={styles.logoutText}>
-          {isLoading ? "Logging out..." : "Logout"}
+          {isLoading ? t("profile.logging_out") : t("profile.logout")}
         </Text>
       </TouchableOpacity>
     </View>

@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import pdfParse from "pdf-parse";
 import { AppDataSource } from "../db/data-source";
-import { Syllabus } from "../models/Syllabus";
+import { Syllabus, SyllabusStatus } from "../models/Syllabus";
 import { UploadType } from "../constants/uploadType";
 import { extractTextFromFile } from "../services/llmTextExtractor.service";
 import { SyllabusQueueService } from "../services/syllabusQueue.service";
@@ -11,6 +11,7 @@ import { User } from "../models/User";
 import { LogSource } from "../models/Log";
 import { LoggingService } from "../services/logging.service";
 import { LogLevel } from "../models/Log";
+import { S3Service } from "../services/s3.service";
 
 const syllabusRepo = AppDataSource.getRepository(Syllabus);
 const userRepo = AppDataSource.getRepository(User);
@@ -40,7 +41,7 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
     // If text is empty, fallback to LLM extraction
     if (!rawText || rawText.length < 50) {
       console.log("Falling back to LLM text extraction...");
-      rawText = await extractTextFromFile(filePath, file.mimetype);
+      rawText = await extractTextFromFile(file.buffer, file.mimetype);
     }
 
     {
@@ -65,7 +66,7 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
     const syllabus = syllabusRepo.create({
       title,
       rawText,
-      uploadedFileUrl: file.filename,
+      filePath: file.filename,
       preferredLanguage: req.body.preferredLanguage,
       uploadType: UploadType.FILE,
       user: { id: userId },
@@ -85,89 +86,115 @@ export const uploadSyllabus = async (req: Request, res: Response) => {
 };
 
 export const uploadSyllabusQueue = async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
-  const file = req.file;
-
-  if (!file) {
-    res.status(400).json({ error: "No file uploaded" });
-    return;
-  }
-
-  const {
-    title = file.originalname,
-    dailyStudyMinutes,
-    preferredLanguage,
-  } = req.body;
-
-  // const title = req.body.title || file.originalname;
-  const filePath = path.resolve(file.path);
-  let rawText = "";
-
   try {
-    const user = await userRepo.findOne({
-      where: { id: userId },
-      select: ["id", "email"],
-    });
+    const { title, dailyStudyMinutes, preferredLanguage } = req.body;
+    const userId = (req as any).userId;
+    const file = (req as any).file;
+
+    if (!title) {
+      res.status(400).json({
+        success: false,
+        message: "Title is required",
+      });
+      return;
+    }
+
+    const user = await userRepo.findOneBy({ id: userId });
     if (!user) {
-      res.status(404).json({ error: "User not found" });
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
       return;
     }
 
-    //Validate if file could be parsed
-    if (file.mimetype === "application/pdf") {
-      const dataBuffer = fs.readFileSync(filePath);
-      const parsed = await pdfParse(dataBuffer);
-      rawText = parsed.text.replace(/\x00/g, "").trim();
-    } else if (file.mimetype === "text/plain") {
-      rawText = fs.readFileSync(filePath, "utf-8").replace(/\x00/g, "").trim();
-    }
+    let rawText = "";
 
-    // If text is empty, fallback to LLM extraction
-    if (!rawText || rawText.length < 50) {
-      console.log("Falling back to LLM text extraction...");
-      rawText = await extractTextFromFile(filePath, file.mimetype);
-    }
+    try {
+      // First try direct parsing for PDF and text files
+      if (file.mimetype === "application/pdf") {
+        const parsed = await pdfParse(file.buffer);
+        rawText = parsed.text.replace(/\x00/g, "").trim();
+      } else if (file.mimetype === "text/plain") {
+        rawText = file.buffer.toString("utf-8").replace(/\x00/g, "").trim();
+      }
 
-    if (!rawText || rawText.length < 50) {
-      res.status(400).json({ error: "File could not be parsed" });
+      // If direct parsing failed or for images, use LLM extraction
+      if (!rawText || rawText.length < 50) {
+        console.log("Using LLM for text extraction...");
+        rawText = await extractTextFromFile(file.buffer, file.mimetype);
+      }
+
+      // Final validation of extracted text
+      if (!rawText || rawText.length < 50) {
+        res.status(400).json({
+          success: false,
+          message:
+            "Could not extract meaningful text from the file. Please try a different file.",
+        });
+        return;
+      }
+
+      // Create syllabus record with PENDING status
+      const syllabus = await syllabusRepo.save({
+        title,
+        status: SyllabusStatus.PENDING,
+        filePath: file.location,
+        user: user,
+        uploadType: UploadType.FILE,
+        dailyStudyMinutes,
+        preferredLanguage,
+        rawText, // Store the extracted text
+      });
+
+      // Log the upload action
+      await LoggingService.log(
+        LogLevel.INFO,
+        LogSource.SYLLABUS_UPLOAD,
+        "Syllabus upload initiated",
+        {
+          userId,
+          syllabusId: syllabus.id,
+          title,
+          fileType: file.mimetype,
+        }
+      );
+
+      // Enqueue the syllabus for processing
+      await SyllabusQueueService.enqueueSyllabusProcessing({
+        syllabusId: syllabus.id,
+        user,
+        filePath: file.key,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Syllabus uploaded successfully",
+        data: {
+          syllabusId: syllabus.id,
+        },
+      });
+      return;
+    } catch (extractionError) {
+      console.error("Error extracting text:", extractionError);
+      res.status(400).json({
+        success: false,
+        message:
+          "Failed to extract text from the file. Please try a different file.",
+        error:
+          extractionError instanceof Error
+            ? extractionError.message
+            : "Unknown error",
+      });
       return;
     }
-
-    const syllabus = syllabusRepo.create({
-      title,
-      rawText,
-      uploadedFileUrl: file.filename,
-      preferredLanguage: preferredLanguage,
-      uploadType: UploadType.FILE,
-      user: { id: userId },
-      dailyStudyMinutes,
+  } catch (error) {
+    console.error("Error in uploadSyllabusQueue:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to process syllabus upload",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
-
-    const savedSyllabus = await syllabusRepo.save(syllabus);
-
-    //Add log
-    await LoggingService.log(
-      LogLevel.INFO,
-      LogSource.SYLLABUS_PROCESSOR,
-      `File Uploaded Successfully`,
-      { syllabusId: savedSyllabus.id },
-      savedSyllabus
-    );
-
-    await SyllabusQueueService.enqueueSyllabusProcessing({
-      syllabusId: savedSyllabus.id,
-      user,
-      filePath,
-    });
-    +res.status(201).json({
-      message:
-        "Syllabus uploaded, we will notify you when the syllabus is ready",
-      syllabusId: syllabus.id,
-    });
-    return;
-  } catch (err) {
-    console.error("Upload error:", err);
-    res.status(500).json({ error: "Failed to upload syllabus" });
     return;
   }
 };
@@ -196,7 +223,12 @@ export const getSyllabus = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const syllabus = await syllabusRepo.find({
     where: { user: { id: userId } },
-    select: { id: true, title: true, preferredLanguage: true },
+    select: {
+      id: true,
+      title: true,
+      preferredLanguage: true,
+      processingState: true,
+    },
   });
   res.json(syllabus);
   return;
@@ -263,7 +295,7 @@ export const getSyllabusById = async (req: Request, res: Response) => {
       select: {
         id: true,
         title: true,
-        rawText: true,
+        processingState: true,
       },
     });
 
