@@ -78,7 +78,11 @@ For each topic:
 - Generate a **list of relevant keywords** that would help design high-quality quiz questions (3 to 5 keywords per topic).
 - Generate a **concise yet detailed summary** (minimum 100 words, maximum 400 words) that effectively explains the key points of the topic. Take your time to ensure the summary is clear and informative.
 
-${languageName ? `Provide the response in ${languageName}.` : ""}
+${
+  languageName
+    ? `Translate ALL fields — including title, keywords, and summary — into ${languageName}.`
+    : ""
+}
 
 Return only a valid JSON array in the exact format below:
 [

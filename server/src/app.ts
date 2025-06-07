@@ -48,6 +48,11 @@ createAppDataSource()
       );
     }
 
+    //    cron.schedule("*/2 * * * * *", async () => {
+    //      console.log("Running streak monitoring every 2 seconds...");
+    //      await StreakMonitorService.checkStreaksAndNotify();
+    //    });
+
     // Cron job that runs every 6 hours (at 00:00, 06:00, 12:00, 18:00)
     cron.schedule("0 */6 * * *", async () => {
       console.log("Running streak monitoring every 6 hours...");

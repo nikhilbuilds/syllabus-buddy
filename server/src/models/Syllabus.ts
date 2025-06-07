@@ -20,6 +20,13 @@ export enum SyllabusStatus {
   FAILED = "failed",
 }
 
+export enum ProcessingStep {
+  TOPICS_SAVED = "topics_saved",
+  BEGINNER_QUIZ_SAVED = "beginner_quiz_saved",
+  INTERMEDIATE_QUIZ_SAVED = "intermediate_quiz_saved",
+  ADVANCED_QUIZ_SAVED = "advanced_quiz_saved",
+}
+
 @Entity()
 export class Syllabus {
   @PrimaryGeneratedColumn()
@@ -85,4 +92,19 @@ export class Syllabus {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @Column({
+    type: "enum",
+    enum: ProcessingStep,
+    nullable: true,
+  })
+  lastCompletedStep!: ProcessingStep;
+
+  @Column({ type: "json", nullable: true })
+  processingState!: {
+    topicsSaved: boolean;
+    beginnerQuizSaved: boolean;
+    intermediateQuizSaved: boolean;
+    advancedQuizSaved: boolean;
+  };
 }
