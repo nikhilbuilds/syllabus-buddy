@@ -118,7 +118,7 @@ const processQuizzesForLevel = async (
         topic.title,
         topic.summary,
         level,
-        0,
+        15,
         syllabus.preferredLanguage
       );
 
@@ -500,7 +500,7 @@ export const processSyllabus = async (
     });
 
     // Delete the file from S3 after processing
-    await S3Service.deleteFile(fileKey);
+    //await S3Service.deleteFile(fileKey);
 
     return {
       topicCount: topics.length,
