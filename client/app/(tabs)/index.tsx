@@ -226,9 +226,9 @@ export default function HomeScreen() {
                         {t("quiz.score")}: {topic.score ?? 0}/
                         {topic.totalQuestions}
                       </Text>
-                      <Text style={styles.completedText}>
+                      {/* <Text style={styles.completedText}>
                         Completed {t("dashboard.completed")}
-                      </Text>
+                      </Text> */}
                     </View>
                   ) : topic.quizGenerated ? (
                     <Text style={styles.pendingText}>

@@ -10,6 +10,7 @@ import {
 import { Topic } from "./Topic";
 import { QuizQuestion } from "./QuizQuestion";
 import { QuizLevel } from "../constants/quiz";
+import { UserProgress } from "./UserProgress";
 
 @Entity()
 export class Quiz {
@@ -30,6 +31,12 @@ export class Quiz {
 
   @OneToMany(() => QuizQuestion, (question) => question.quiz, { cascade: true })
   questions!: QuizQuestion[];
+
+  @OneToMany(() => UserProgress, (progress) => progress.quiz, { cascade: true })
+  userProgress!: UserProgress[];
+
+  @Column({ default: 1 })
+  version!: number;
 
   @CreateDateColumn()
   createdAt!: Date;

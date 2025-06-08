@@ -5,6 +5,7 @@ import { Topic } from "../models/Topic";
 import { extractTopicsFromSyllabus } from "../services/topicParser.service";
 import { scheduleTopicsByDate } from "../services/scheduleTopicsByDate";
 import moment from "moment";
+import { generateQuizWithRetry } from "src/services/quizGenerator.service";
 
 const syllabusRepo = AppDataSource.getRepository(Syllabus);
 const topicRepo = AppDataSource.getRepository(Topic);
@@ -109,18 +110,28 @@ export const getTopicsForSyllabus = async (req: Request, res: Response) => {
 
   const topics = await topicRepo.find({
     where: { syllabus: { id: syllabusId } },
-    relations: ["quizzes", "syllabus"],
+    relations: ["quizzes", "syllabus", "quizzes.userProgress"],
     select: {
       quizzes: {
         id: true,
         level: true,
         totalQuestions: true,
+        version: true,
+        userProgress: {
+          id: true,
+          score: true,
+          completedOn: true,
+        },
       },
       id: true,
       title: true,
       estimatedTimeMinutes: true,
       dayIndex: true,
       assignedDate: true,
+      syllabus: {
+        id: true,
+        title: true,
+      },
     },
     order: { dayIndex: "ASC" },
   });

@@ -223,3 +223,82 @@ export const getQuizById = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch quiz" });
   }
 };
+
+export const regenerateQuiz = async (req, res) => {
+  const { topicId } = req.params;
+  const { level = QuizLevel.BEGINNER } = req.body;
+  const userId = (req as any).userId; // or however you get user
+
+  const topic = await topicRepo.findOne({
+    where: { id: topicId },
+    relations: ["syllabus", "syllabus.user"],
+  });
+
+  if (!topic || topic.syllabus.user.id !== userId) {
+    res.status(403).json({ error: "Not allowed" });
+    return;
+  }
+
+  if (!topic) return res.status(404).json({ error: "Topic not found" });
+
+  // Check for existing quiz for this topic and level that has not been played by the user
+  const existingUnplayedQuiz = await quizRepo
+    .createQueryBuilder("quiz")
+    .where("quiz.topic = :topicId", { topicId })
+    .andWhere("quiz.level = :level", { level })
+    .andWhere((qb) => {
+      const subQuery = qb
+        .subQuery()
+        .select("1")
+        .from("user_progress", "up")
+        .where("up.quiz = quiz.id")
+        .andWhere("up.user = :userId")
+        .getQuery();
+      return `NOT EXISTS ${subQuery}`;
+    })
+    .setParameter("userId", userId)
+    .getOne();
+
+  if (existingUnplayedQuiz) {
+    return res.json({
+      quizId: existingUnplayedQuiz.id,
+      version: existingUnplayedQuiz.version,
+      status: "existing",
+    });
+  }
+
+  await AppDataSource.transaction(async (manager) => {
+    // Get max version for this topic & level
+    const maxQuiz = await manager
+      .getRepository(Quiz)
+      .createQueryBuilder("quiz")
+      .where("quiz.topic = :topicId", { topicId })
+      .andWhere("quiz.level = :level", { level })
+      .orderBy("quiz.version", "DESC")
+      .getOne();
+
+    const nextVersion = (maxQuiz?.version || 0) + 1;
+
+    // Generate quiz (reuse your service)
+    const quizData = await generateQuizWithRetry(
+      topic.title,
+      topic.syllabus.rawText,
+      level,
+      1,
+      topic.syllabus.preferredLanguage
+    );
+
+    // Save new quiz
+    const newQuiz = manager.create(Quiz, {
+      topic,
+      level,
+      version: nextVersion,
+      totalQuestions: quizData.length,
+      questions: quizData,
+    });
+    await manager.save(newQuiz);
+
+    // Optionally, return quiz ID and status
+    res.json({ quizId: newQuiz.id, version: nextVersion, status: "ready" });
+  });
+};

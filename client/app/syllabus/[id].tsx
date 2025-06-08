@@ -18,16 +18,26 @@ import { QuizLevel } from "@/constants/quiz";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAuth } from "@/context/auth";
 
+interface QuizUserProgress {
+  id: number;
+  score: number;
+  completedOn: string;
+}
+
+interface Quiz {
+  id: number;
+  level: string;
+  totalQuestions: number;
+  version: number;
+  userProgress: QuizUserProgress[];
+}
+
 interface Topic {
   id: number;
   title: string;
   dayIndex: number;
   estimatedTimeMinutes: number;
-  quizzes: {
-    id: number;
-    level: string;
-    totalQuestions: number;
-  }[];
+  quizzes: Quiz[];
 }
 
 interface SyllabusDetail {
@@ -49,6 +59,8 @@ interface Question {
   answer: string;
   explanation: string;
 }
+
+type MaybeTopic = Topic | null | undefined;
 
 const ProcessingState = ({
   state,
@@ -128,6 +140,10 @@ export default function SyllabusDetailScreen() {
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [isProcessingExpanded, setIsProcessingExpanded] = useState(true);
+  const [levelSelectModalVisible, setLevelSelectModalVisible] = useState(false);
+  const [generateQuizModalVisible, setGenerateQuizModalVisible] =
+    useState(false);
+  const [isGeneratingNewQuiz, setIsGeneratingNewQuiz] = useState(false);
 
   const fetchSyllabus = async () => {
     try {
@@ -189,24 +205,17 @@ export default function SyllabusDetailScreen() {
     }
   };
 
-  const handleTopicPress = async (topic: Topic) => {
-    console.log("topicId", topic);
-
-    if (topic.quizzes.length === 0) {
-      Alert.alert(
-        "Error",
-        "The quiz is not generated yet, we will notify you when it is ready"
-      );
-      return;
-    }
-
+  const handleTopicPress = (topic: Topic) => {
     setSelectedTopicId(topic.id);
     setSelectedTopic(topic);
-    setQuizModalVisible(true);
+    if (allLevelsPlayed(topic)) {
+      setQuizModalVisible(true);
+    } else {
+      setLevelSelectModalVisible(true);
+    }
   };
 
-  const handleQuizGenerate = async () => {
-    setQuizModalVisible(false);
+  const handleQuizRedirect = async () => {
     try {
       setIsGeneratingQuiz(true);
 
@@ -228,6 +237,40 @@ export default function SyllabusDetailScreen() {
       Alert.alert("Error", "Failed to generate quiz");
     } finally {
       setIsGeneratingQuiz(false);
+    }
+  };
+
+  const handleQuizGenerate = async () => {
+    setIsGeneratingNewQuiz(true);
+    try {
+      const response = await axiosInstance.post(
+        `/quiz/${selectedTopic?.id}/regenerate-quiz`,
+        {
+          level: selectedLevel,
+        }
+      );
+
+      console.log("response", JSON.stringify(response.data));
+
+      if (response.data.quizId) {
+        router.replace({
+          pathname: "/quiz/[id]",
+          params: {
+            id: response.data.quizId,
+            syllabusId: id,
+            returnTo: "topics",
+          },
+        });
+      }
+
+      Alert.alert("Success", "Quiz generated successfully");
+      // router.replace(`/syllabus/${id}`);
+    } catch (error) {
+      console.log("error", JSON.stringify(error));
+      console.error("Error parsing topics:", error);
+      Alert.alert("Error", "Failed to parse topics");
+    } finally {
+      setIsGeneratingNewQuiz(false);
     }
   };
 
@@ -297,6 +340,15 @@ export default function SyllabusDetailScreen() {
         </Text>
       </View>
     );
+  };
+
+  const allLevelsPlayed = (topic: Topic | null) => {
+    if (!topic) return false;
+    const requiredLevels = ["BEGINNER", "INTERMEDIATE", "ADVANCED"];
+    return requiredLevels.every((level) => {
+      const quiz = topic.quizzes.find((q) => q.level.toUpperCase() === level);
+      return quiz && quiz.userProgress && quiz.userProgress.length > 0;
+    });
   };
 
   if (loading) {
@@ -428,17 +480,17 @@ export default function SyllabusDetailScreen() {
         <Modal
           animationType="slide"
           transparent={true}
-          visible={quizModalVisible}
-          onRequestClose={() => setQuizModalVisible(false)}
+          visible={levelSelectModalVisible}
+          onRequestClose={() => setLevelSelectModalVisible(false)}
         >
           <View style={styles.centeredView}>
             <View style={styles.modalView}>
               <Text style={styles.modalTitle}>Select Quiz Level</Text>
-              {/* {selectedTopic?.quizzes.find((quiz) => quiz.level === selectedLevel)} */}
               {Object.values(QuizLevel).map((level) => {
-                const isDisabled = !selectedTopic?.quizzes.find(
-                  (quiz) => quiz.level === level
+                const quiz = selectedTopic?.quizzes.find(
+                  (q) => q.level === level
                 );
+                const isDisabled = !quiz;
                 return (
                   <TouchableOpacity
                     key={level}
@@ -448,7 +500,9 @@ export default function SyllabusDetailScreen() {
                       isDisabled && styles.disabledLevel,
                     ]}
                     disabled={isDisabled}
-                    onPress={() => setSelectedLevel(level)}
+                    onPress={() => {
+                      setSelectedLevel(level);
+                    }}
                   >
                     <Text
                       style={[
@@ -457,25 +511,217 @@ export default function SyllabusDetailScreen() {
                         isDisabled && styles.disabledLevelText,
                       ]}
                     >
-                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                      {level.charAt(0).toUpperCase() +
+                        level.slice(1).toLowerCase()}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
-              <View style={styles.modalButtons}>
+
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => handleQuizRedirect()}
+              >
+                <Text style={styles.generateNewButtonText}>Play Quiz</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setLevelSelectModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.sectionDivider} />
+            <Text style={styles.modalSubtitle}>
+              Play all quiz to show history and create new quizzes
+            </Text>
+          </View>
+        </Modal>
+
+        {/* Quiz History Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={quizModalVisible}
+          onRequestClose={() => setQuizModalVisible(false)}
+        >
+          <View style={styles.centeredView}>
+            <View
+              style={[
+                styles.modalView,
+                {
+                  maxHeight: "92%",
+                  paddingVertical: 24,
+                  paddingHorizontal: 16,
+                },
+              ]}
+            >
+              <Text style={styles.modalTitle}>Quiz History</Text>
+              {selectedTopic &&
+              selectedTopic.quizzes &&
+              selectedTopic.quizzes.length > 0 ? (
+                <View style={styles.quizTableContainer}>
+                  <View style={styles.quizTableHeader}>
+                    <Text style={styles.quizTableHeaderCell}>Level</Text>
+                    <Text style={styles.quizTableHeaderCell}>Date</Text>
+                    <Text style={styles.quizTableHeaderCell}>Version</Text>
+                    <Text style={styles.quizTableHeaderCell}>Play</Text>
+                  </View>
+                  <ScrollView style={styles.quizTableBody}>
+                    {selectedTopic.quizzes
+                      .filter(
+                        (quiz: Quiz) =>
+                          quiz.userProgress && quiz.userProgress.length > 0
+                      )
+                      .map((quiz: Quiz, idx: number) => {
+                        // Get the latest completedOn date from userProgress
+                        const latestProgress = quiz.userProgress.reduce(
+                          (
+                            latest: QuizUserProgress | null,
+                            curr: QuizUserProgress
+                          ) => {
+                            return !latest ||
+                              new Date(curr.completedOn) >
+                                new Date(latest.completedOn)
+                              ? curr
+                              : latest;
+                          },
+                          null
+                        );
+                        return (
+                          <View key={quiz.id} style={styles.quizTableRow}>
+                            <Text style={styles.quizTableCell}>
+                              {quiz.level.charAt(0).toUpperCase() +
+                                quiz.level.slice(1).toLowerCase()}
+                            </Text>
+                            <Text style={styles.quizTableCell}>
+                              {latestProgress
+                                ? new Date(
+                                    latestProgress.completedOn
+                                  ).toLocaleDateString()
+                                : "-"}
+                            </Text>
+                            <Text style={styles.quizTableCell}>
+                              v{quiz.version}
+                            </Text>
+                            <TouchableOpacity
+                              style={styles.playButton}
+                              onPress={() => {
+                                setSelectedLevel(quiz.level as QuizLevel);
+                                handleQuizRedirect();
+                              }}
+                            >
+                              <Ionicons name="play" size={16} color="white" />
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
+                  </ScrollView>
+                </View>
+              ) : (
+                <View style={styles.noQuizzesContainer}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={48}
+                    color={darkTheme.colors.textSecondary}
+                  />
+                  <Text style={styles.noQuizzesText}>
+                    No quizzes available yet
+                  </Text>
+                </View>
+              )}
+              <View style={styles.sectionDivider} />
+              {allLevelsPlayed(selectedTopic) && (
                 <TouchableOpacity
-                  style={[styles.button, styles.buttonCancel]}
-                  onPress={() => setQuizModalVisible(false)}
+                  style={styles.generateNewButton}
+                  onPress={() => {
+                    setGenerateQuizModalVisible(true);
+                    setQuizModalVisible(false);
+                  }}
                 >
-                  <Text style={styles.buttonText}>Cancel</Text>
+                  <Text style={styles.generateNewButtonText}>
+                    Generate New Quiz
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonSubmit]}
-                  onPress={handleQuizGenerate}
-                >
-                  <Text style={styles.buttonText}>Play Quiz</Text>
-                </TouchableOpacity>
-              </View>
+              )}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => {
+                  setQuizModalVisible(false);
+                  setGenerateQuizModalVisible(false);
+                }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Generate New Quiz Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={generateQuizModalVisible}
+          onRequestClose={() => setGenerateQuizModalVisible(false)}
+        >
+          <View style={styles.centeredView}>
+            <View style={styles.modalView}>
+              <Text style={styles.modalTitle}>Generate New Quiz</Text>
+              {Object.values(QuizLevel).map((level) => {
+                const quiz = selectedTopic?.quizzes.find(
+                  (q) => q.level === level
+                );
+                const isDisabled = !quiz;
+                return (
+                  <TouchableOpacity
+                    key={level}
+                    style={[
+                      styles.levelOption,
+                      selectedLevel === level && styles.selectedLevel,
+                      isDisabled && styles.disabledLevel,
+                    ]}
+                    disabled={isDisabled}
+                    onPress={() => {
+                      setSelectedLevel(level);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.levelText,
+                        selectedLevel === level && styles.selectedLevelText,
+                        isDisabled && styles.disabledLevelText,
+                      ]}
+                    >
+                      {level.charAt(0).toUpperCase() +
+                        level.slice(1).toLowerCase()}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => handleQuizGenerate()}
+                disabled={isGeneratingNewQuiz}
+              >
+                {isGeneratingNewQuiz ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.generateNewButtonText}>
+                    Generate Quiz
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => {
+                  setQuizModalVisible(false);
+                  setGenerateQuizModalVisible(false);
+                }}
+              >
+                <Text style={styles.closeButtonText}>Cancel</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -638,6 +884,8 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonCancel: {
     backgroundColor: darkTheme.colors.error,
@@ -882,5 +1130,128 @@ const styles = StyleSheet.create({
     width: "40%",
     backgroundColor: darkTheme.colors.border,
     borderRadius: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: darkTheme.colors.text,
+    marginBottom: 12,
+  },
+  quizTableContainer: {
+    width: "100%",
+    marginBottom: 12,
+  },
+  quizTableHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: darkTheme.colors.border,
+    paddingBottom: 8,
+    marginBottom: 4,
+  },
+  quizTableHeaderCell: {
+    flex: 1,
+    fontWeight: "bold",
+    color: darkTheme.colors.text,
+    fontSize: 14,
+    textAlign: "center",
+  },
+  quizTableBody: {
+    maxHeight: 180,
+  },
+  quizTableRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: darkTheme.colors.border,
+  },
+  quizTableCell: {
+    flex: 1,
+    color: darkTheme.colors.text,
+    fontSize: 14,
+    textAlign: "center",
+  },
+  playButton: {
+    backgroundColor: darkTheme.colors.success,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  playButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  generateNewButton: {
+    backgroundColor: darkTheme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    width: "100%",
+    alignSelf: "center",
+  },
+  generateNewButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  noQuizzesContainer: {
+    alignItems: "center",
+    padding: 20,
+  },
+  noQuizzesText: {
+    fontSize: 16,
+    color: darkTheme.colors.textSecondary,
+    marginVertical: 16,
+    textAlign: "center",
+  },
+  generateButton: {
+    backgroundColor: darkTheme.colors.primary,
+    marginTop: 20,
+  },
+  generateButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: darkTheme.colors.textSecondary,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: darkTheme.colors.border,
+    marginVertical: 12,
+    width: "100%",
+  },
+  closeButton: {
+    backgroundColor: darkTheme.colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 0,
+    marginBottom: 8,
+    width: "100%",
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: darkTheme.colors.border,
+  },
+  closeButtonText: {
+    color: darkTheme.colors.text,
+    fontWeight: "bold",
+    textAlign: "center",
+    fontSize: 16,
   },
 });
