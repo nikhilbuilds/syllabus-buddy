@@ -214,7 +214,7 @@ export default function SyllabusDetailScreen() {
       const quiz = topic?.quizzes.find((q) => q.level === selectedLevel);
 
       if (quiz) {
-        router.push({
+        router.replace({
           pathname: "/quiz/[id]",
           params: {
             id: quiz.id,

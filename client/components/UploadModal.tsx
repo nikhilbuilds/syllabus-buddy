@@ -42,7 +42,7 @@ export default function UploadModal({
   );
   const [dailyStudyMinutes, setDailyStudyMinutes] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-
+  console.log("user==========>", user);
   const resetForm = () => {
     setUploadType(null);
     setSelectedFile(null);

@@ -48,6 +48,7 @@ export const loginUser = async (req: Request, res: Response) => {
         "isOnboardingComplete",
         "emailVerificationToken",
         "emailVerificationExpires",
+        "preferredLanguage",
       ],
     });
 
@@ -104,6 +105,7 @@ export const loginUser = async (req: Request, res: Response) => {
         isEmailVerified: user.isEmailVerified,
         isOnboardingComplete: user.isOnboardingComplete,
         needsNewVerificationEmail,
+        preferredLanguage: user.preferredLanguage,
       },
     });
     return;

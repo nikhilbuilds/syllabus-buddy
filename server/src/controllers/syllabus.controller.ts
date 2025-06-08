@@ -208,15 +208,34 @@ export const createSyllabus = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const { title, description, preferredLanguage, dailyStudyMinutes } = req.body;
 
+  const user = await userRepo.findOne({
+    where: { id: userId },
+    select: { id: true, email: true, name: true },
+  });
+
+  if (!user) {
+    res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+    return;
+  }
+
   const syllabus = syllabusRepo.create({
     title,
     rawText: description,
     preferredLanguage,
     uploadType: UploadType.MANUAL,
     user: { id: userId },
+    dailyStudyMinutes,
   });
 
   await syllabusRepo.save(syllabus);
+
+  await SyllabusQueueService.enqueueSyllabusProcessing({
+    syllabusId: syllabus.id,
+    user,
+  });
 
   res
     .status(201)

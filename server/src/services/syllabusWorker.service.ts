@@ -311,7 +311,7 @@ const getFileContent = async (filePath: string): Promise<Buffer> => {
 export const processSyllabus = async (
   syllabusId: number,
   user: User,
-  fileKey: string
+  fileKey?: string
 ): Promise<ProcessingResult> => {
   try {
     console.log("Processing syllabus", { syllabusId, user, fileKey });

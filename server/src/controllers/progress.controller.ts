@@ -101,35 +101,57 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
   }
 };
 
+// ... existing code ...
 export const getProgressStats = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
 
-  const syllabus = await syllabusRepo.findOne({
+  // 1. Fetch all syllabuses for the user
+  const syllabuses = await syllabusRepo.find({
     where: { user: { id: userId } },
-    order: { createdAt: "DESC" },
+    select: { id: true },
   });
 
-  if (!syllabus) {
-    res.status(200).json({ message: "No syllabus found", totalTopics: [] });
+  if (!syllabuses || syllabuses.length === 0) {
+    res.status(200).json({
+      message: "No syllabus found",
+      totalTopics: 0,
+      completedTopics: 0,
+      completionRate: 0,
+      streak: 0,
+      currentStreak: 0,
+    });
     return;
   }
 
+  // 2. Gather all topics from all syllabuses
+  const syllabusIds = syllabuses.map((s) => s.id);
   const allTopics = await topicRepo.find({
-    where: { syllabus: { id: syllabus.id } },
+    where: { syllabus: { id: In(syllabusIds) } },
   });
   const topicIds = allTopics.map((t) => t.id);
 
-  const allProgress = await progressRepo.find({
-    where: {
-      user: { id: userId },
-      topic: { id: In(topicIds) },
-    },
-    order: { completedOn: "DESC" },
-  });
+  // 3. Fetch all progress for these topics
+  let allProgress: any[] = [];
+  if (topicIds.length > 0) {
+    allProgress = await progressRepo
+      .createQueryBuilder("progress")
+      .leftJoinAndSelect("progress.topic", "topic")
+      .select([
+        "progress.score",
+        "progress.totalQuestions",
+        "progress.completedOn",
+        "topic.id", // Explicitly select topic.id
+      ])
+      .where("progress.user_id = :userId", { userId })
+      .andWhere("progress.topic_id IN (:...topicIds)", { topicIds })
+      .orderBy("progress.completedOn", "DESC")
+      .getMany();
+  }
 
-  // Total and completed
+  // 4. Calculate stats
   const totalTopics = allTopics.length;
-  const completedTopics = allProgress.length;
+  const completedTopicIds = new Set(allProgress.map((p) => p.topic.id));
+  const completedTopics = completedTopicIds.size;
   const completionRate =
     totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
 
@@ -143,7 +165,6 @@ export const getProgressStats = async (req: Request, res: Response) => {
   // Sort dates descending
   const sortedDays = Array.from(uniqueDays).sort().reverse();
   let streak = 0;
-
   for (let i = 0; i < sortedDays.length; i++) {
     const expectedDate = moment().subtract(i, "days").format("YYYY-MM-DD");
     if (sortedDays[i] === expectedDate) {

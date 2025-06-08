@@ -182,7 +182,7 @@ export default function HomeScreen() {
             <View
               style={[
                 styles.progressFill,
-                { width: `${stats?.completionRate || 0}%` },
+                { width: `${Math.min(stats?.completionRate || 0, 100)}%` },
               ]}
             />
           </View>

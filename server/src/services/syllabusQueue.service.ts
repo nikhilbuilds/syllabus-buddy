@@ -9,7 +9,7 @@ const { sqs } = configureAWS();
 export interface SyllabusProcessingJob {
   syllabusId: number;
   user: User;
-  filePath: string;
+  filePath?: string;
 }
 {
   /*
