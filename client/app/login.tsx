@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../context/auth";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { darkTheme } from "@/constants/theme";
 
 export default function Login() {
   const [email, setEmail] = useState("devnikhil0306@gmail.com");
@@ -82,15 +83,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 20,
-    backgroundColor: "#1a1a1a",
   },
   logoContainer: {
     alignItems: "center",
     marginBottom: 48,
+    width: "100%",
+    borderWidth: 2,
+    borderColor: darkTheme.colors.border,
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
   logo: {
-    width: 300,
-    height: 150,
+    width: "100%",
+    height: 200,
   },
   title: {
     fontSize: 24,
@@ -108,7 +114,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   button: {
-    backgroundColor: "#007AFF",
+    backgroundColor: darkTheme.colors.error,
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
@@ -124,7 +130,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   linkText: {
-    color: "#007AFF",
+    color: darkTheme.colors.identifier,
     fontSize: 16,
   },
 });

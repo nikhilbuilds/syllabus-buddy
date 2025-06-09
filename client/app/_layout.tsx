@@ -55,7 +55,7 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           headerStyle: {
-            backgroundColor: darkTheme.colors.card,
+            backgroundColor: darkTheme.colors.background,
           },
           headerTintColor: darkTheme.colors.text,
           contentStyle: {

@@ -9,9 +9,11 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { router } from "expo-router";
 import onboardingService from "../../services/onboardingService";
+import { darkTheme } from "@/constants/theme";
 
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
@@ -84,6 +86,14 @@ export default function RegisterScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* <View style={styles.logoContainer}>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View> */}
+
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>
@@ -99,6 +109,7 @@ export default function RegisterScreen() {
               value={formData.name}
               onChangeText={(text) => setFormData({ ...formData, name: text })}
               placeholder="Enter your full name"
+              placeholderTextColor="#666"
               autoCapitalize="words"
             />
             {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
@@ -111,6 +122,7 @@ export default function RegisterScreen() {
               value={formData.email}
               onChangeText={(text) => setFormData({ ...formData, email: text })}
               placeholder="Enter your email"
+              placeholderTextColor="#666"
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -128,6 +140,7 @@ export default function RegisterScreen() {
                 setFormData({ ...formData, password: text })
               }
               placeholder="Create a password"
+              placeholderTextColor="#666"
               secureTextEntry
             />
             {errors.password && (
@@ -147,6 +160,7 @@ export default function RegisterScreen() {
                 setFormData({ ...formData, confirmPassword: text })
               }
               placeholder="Confirm your password"
+              placeholderTextColor="#666"
               secureTextEntry
             />
             {errors.confirmPassword && (
@@ -182,37 +196,48 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: darkTheme.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
     padding: 20,
     justifyContent: "center",
   },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 32,
+    width: "100%",
+    borderWidth: 2,
+    borderColor: darkTheme.colors.border,
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
+  },
+  logo: {
+    width: "100%",
+    height: 200,
+  },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 32,
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
+    color: darkTheme.colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: darkTheme.colors.textSecondary,
     textAlign: "center",
   },
   form: {
-    backgroundColor: "white",
+    backgroundColor: darkTheme.colors.card,
     borderRadius: 12,
     padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: darkTheme.colors.border,
   },
   inputGroup: {
     marginBottom: 20,
@@ -220,37 +245,38 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
+    color: darkTheme.colors.text,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: darkTheme.colors.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: darkTheme.colors.background,
+    color: darkTheme.colors.text,
   },
   inputError: {
-    borderColor: "#dc3545",
+    borderColor: darkTheme.colors.error,
   },
   errorText: {
-    color: "#dc3545",
+    color: darkTheme.colors.identifier,
     fontSize: 14,
     marginTop: 4,
   },
   registerButton: {
-    backgroundColor: "#007bff",
+    backgroundColor: darkTheme.colors.error,
     borderRadius: 8,
     padding: 16,
     alignItems: "center",
     marginTop: 10,
   },
   buttonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: darkTheme.colors.border,
   },
   registerButtonText: {
-    color: "white",
+    color: darkTheme.colors.text,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -260,10 +286,10 @@ const styles = StyleSheet.create({
   },
   loginLinkText: {
     fontSize: 16,
-    color: "#666",
+    color: darkTheme.colors.textSecondary,
   },
   linkText: {
-    color: "#007bff",
+    color: darkTheme.colors.identifier,
     fontWeight: "600",
   },
 });

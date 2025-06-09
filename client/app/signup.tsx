@@ -5,12 +5,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
+  Image,
 } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
+import { darkTheme } from "@/constants/theme";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -69,23 +71,36 @@ export default function Signup() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.logoContainer}>
+        <Image
+          source={require("../assets/images/logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+      <Text style={styles.title}>Create Account</Text>
+
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: darkTheme.colors.text }]}
         placeholder="Email"
+        placeholderTextColor="#666"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
+        keyboardType="email-address"
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: darkTheme.colors.text }]}
         placeholder="Password"
+        placeholderTextColor="#666"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: darkTheme.colors.text }]}
         placeholder="Confirm Password"
+        placeholderTextColor="#666"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         secureTextEntry
@@ -101,8 +116,11 @@ export default function Signup() {
         <Text style={styles.buttonText}>Sign up with Google</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/login")}>
-        <Text style={styles.link}>Already have an account? Login</Text>
+      <TouchableOpacity
+        style={styles.linkButton}
+        onPress={() => router.push("/login")}
+      >
+        <Text style={styles.linkText}>Already have an account? Login</Text>
       </TouchableOpacity>
     </View>
   );
@@ -113,36 +131,63 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: "center",
+    backgroundColor: darkTheme.colors.background,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 48,
+    width: "100%",
+    borderWidth: 2,
+    borderColor: darkTheme.colors.border,
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
+  },
+  logo: {
+    width: "100%",
+    height: 200,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 30,
+    color: darkTheme.colors.text,
+    textAlign: "center",
   },
   input: {
-    height: 40,
+    height: 50,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: darkTheme.colors.border,
     borderRadius: 8,
     marginBottom: 15,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
+    backgroundColor: darkTheme.colors.card,
   },
   button: {
-    backgroundColor: "#ffd33d",
+    backgroundColor: darkTheme.colors.error,
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
-    marginBottom: 10,
+    marginTop: 10,
   },
   googleButton: {
-    backgroundColor: "#4285F4",
+    backgroundColor: darkTheme.colors.primary,
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
-    marginBottom: 10,
+    marginTop: 10,
   },
   buttonText: {
-    color: "#fff",
+    color: darkTheme.colors.text,
+    fontSize: 16,
     fontWeight: "bold",
   },
-  link: {
-    color: "#ffd33d",
-    textAlign: "center",
+  linkButton: {
     marginTop: 15,
+    alignItems: "center",
+  },
+  linkText: {
+    color: darkTheme.colors.identifier,
+    fontSize: 16,
   },
 });

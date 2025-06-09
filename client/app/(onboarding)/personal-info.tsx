@@ -13,6 +13,7 @@ import {
 // import { Picker } from "@react-native-picker/picker"; // Comment out for now
 import { router } from "expo-router";
 import onboardingService from "../../services/onboardingService";
+import { darkTheme } from "@/constants/theme";
 
 const TARGET_EXAMS = [
   { label: "Select Target Exam", value: "" },
@@ -115,6 +116,7 @@ export default function PersonalInfoScreen() {
               value={formData.age}
               onChangeText={(text) => setFormData({ ...formData, age: text })}
               placeholder="Enter your age"
+              placeholderTextColor="#666"
               keyboardType="numeric"
             />
           </View>
@@ -128,6 +130,7 @@ export default function PersonalInfoScreen() {
                 setFormData({ ...formData, currentOccupation: text })
               }
               placeholder="e.g., Student, Software Engineer, Teacher"
+              placeholderTextColor="#666"
             />
           </View>
 
@@ -220,6 +223,7 @@ export default function PersonalInfoScreen() {
                 setFormData({ ...formData, learningGoals: text })
               }
               placeholder="What do you want to achieve? (optional)"
+              placeholderTextColor="#666"
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -235,6 +239,7 @@ export default function PersonalInfoScreen() {
                 setFormData({ ...formData, additionalNotes: text })
               }
               placeholder="Any specific requirements or expectations? (optional)"
+              placeholderTextColor="#666"
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -259,37 +264,34 @@ export default function PersonalInfoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: darkTheme.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
     padding: 20,
+    paddingTop: Platform.OS === "ios" ? 80 : 40,
   },
   header: {
     alignItems: "center",
     marginBottom: 30,
-    marginTop: 20,
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
+    color: darkTheme.colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: darkTheme.colors.textSecondary,
     textAlign: "center",
   },
   form: {
-    backgroundColor: "white",
+    backgroundColor: darkTheme.colors.card,
     borderRadius: 12,
     padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: darkTheme.colors.border,
   },
   inputGroup: {
     marginBottom: 20,
@@ -297,65 +299,65 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
+    color: darkTheme.colors.text,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: darkTheme.colors.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: darkTheme.colors.background,
+    color: darkTheme.colors.text,
   },
   textArea: {
     minHeight: 80,
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: darkTheme.colors.border,
     borderRadius: 8,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: darkTheme.colors.background,
   },
   pickerButton: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: darkTheme.colors.border,
     borderRadius: 8,
     padding: 12,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: darkTheme.colors.background,
   },
   pickerButtonText: {
-    color: "#333",
+    color: darkTheme.colors.text,
   },
   optionsContainer: {
-    backgroundColor: "white",
+    backgroundColor: darkTheme.colors.card,
     borderRadius: 8,
     marginBottom: 15,
-    elevation: 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: darkTheme.colors.border,
   },
   option: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: darkTheme.colors.border,
   },
   optionText: {
     fontSize: 16,
+    color: darkTheme.colors.text,
   },
   completeButton: {
-    backgroundColor: "#28a745",
+    backgroundColor: darkTheme.colors.error,
     borderRadius: 8,
     padding: 16,
     alignItems: "center",
     marginTop: 10,
   },
   buttonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: darkTheme.colors.border,
   },
   completeButtonText: {
-    color: "white",
+    color: darkTheme.colors.text,
     fontSize: 16,
     fontWeight: "600",
   },
