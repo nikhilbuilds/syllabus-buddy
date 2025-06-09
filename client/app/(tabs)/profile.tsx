@@ -39,7 +39,7 @@ export default function ProfileScreen() {
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
-      <Text style={styles.title}>{t("profile.profile")}</Text>
+      {/* <Text style={styles.title}>{t("profile.profile")}</Text> */}
 
       <View style={styles.section}>
         <Text style={styles.label}>{t("profile.name")}</Text>

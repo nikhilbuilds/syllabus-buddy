@@ -75,7 +75,7 @@ const ProcessingState = ({
         <Ionicons
           name="checkmark-circle"
           size={24}
-          color={darkTheme.colors.success}
+          color={darkTheme.colors.identifier}
         />
       ) : (
         <ActivityIndicator size="small" color={darkTheme.colors.primary} />
@@ -389,7 +389,7 @@ export default function SyllabusDetailScreen() {
           <Ionicons
             name={isProcessingExpanded ? "chevron-up" : "chevron-down"}
             size={24}
-            color={darkTheme.colors.text}
+            color={darkTheme.colors.identifier}
           />
         </View>
       </TouchableOpacity>
@@ -903,7 +903,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
-    backgroundColor: darkTheme.colors.background,
+    backgroundColor: darkTheme.colors.identifier,
     borderWidth: 1,
     borderColor: darkTheme.colors.border,
   },
@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dayBadge: {
-    backgroundColor: darkTheme.colors.primary,
+    backgroundColor: darkTheme.colors.identifier,
     padding: 5,
     borderRadius: 5,
     marginRight: 10,

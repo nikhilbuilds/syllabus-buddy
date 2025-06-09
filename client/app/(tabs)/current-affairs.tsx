@@ -158,7 +158,7 @@ export default function CurrentAffairsScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen
+      {/* <Stack.Screen
         options={{
           title: "Current Affairs",
           headerStyle: {
@@ -185,7 +185,7 @@ export default function CurrentAffairsScreen() {
             </TouchableOpacity>
           ),
         }}
-      />
+      /> */}
       <FlatList
         data={affairs}
         keyExtractor={(item) => item.id}
