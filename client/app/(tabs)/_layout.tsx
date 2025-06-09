@@ -6,7 +6,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#ffd33d",
+        tabBarActiveTintColor: "#00bfa6",
         headerStyle: {
           backgroundColor: "#25292e",
         },
@@ -42,6 +42,25 @@ export default function TabLayout() {
           title: "Syllabus",
           tabBarIcon: ({ color }) => (
             <FontAwesome name="file-pdf-o" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="current-affairs"
+        options={{
+          title: "Current Affairs",
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            focused: boolean;
+          }) => (
+            <Ionicons
+              name={focused ? "newspaper" : "newspaper-outline"}
+              color={color}
+              size={24}
+            />
           ),
         }}
       />

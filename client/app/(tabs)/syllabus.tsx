@@ -114,7 +114,11 @@ export default function SyllabusScreen() {
         onPress={() => handleSyllabusPress(item.id, item.title)}
       >
         <View style={styles.syllabusIcon}>
-          <Ionicons name="document-text" size={24} color="#007AFF" />
+          <Ionicons
+            name="document-text"
+            size={24}
+            color={darkTheme.colors.identifier}
+          />
         </View>
         <View style={styles.syllabusInfo}>
           <Text style={styles.syllabusTitle}>
@@ -139,7 +143,11 @@ export default function SyllabusScreen() {
           style={styles.actionButton}
           onPress={() => handleRename(item.id, item.title)}
         >
-          <Ionicons name="pencil" size={18} color="#007AFF" />
+          <Ionicons
+            name="pencil"
+            size={18}
+            color={darkTheme.colors.identifier}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -180,7 +188,11 @@ export default function SyllabusScreen() {
           <Ionicons
             name="refresh"
             size={24}
-            color={refreshing ? darkTheme.colors.textSecondary : "#007AFF"}
+            color={
+              refreshing
+                ? darkTheme.colors.textSecondary
+                : darkTheme.colors.identifier
+            }
           />
         </TouchableOpacity>
       </View>
@@ -355,7 +367,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#007AFF",
+    backgroundColor: darkTheme.colors.identifier,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",

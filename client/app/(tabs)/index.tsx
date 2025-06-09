@@ -307,13 +307,13 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    backgroundColor: "#e9ecef",
+    backgroundColor: darkTheme.colors.border,
     borderRadius: 4,
     marginBottom: 24,
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#007AFF",
+    backgroundColor: darkTheme.colors.identifier,
     borderRadius: 4,
   },
   statsRow: {
@@ -327,11 +327,11 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: darkTheme.colors.identifier,
   },
   statLabel: {
     fontSize: 14,
-    color: "#6c757d",
+    color: darkTheme.colors.textSecondary,
   },
   sectionTitle: {
     fontSize: 20,

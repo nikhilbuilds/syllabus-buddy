@@ -15,10 +15,17 @@ import { StreakMonitorService } from "./services/streakMonitor.service";
 import cron from "node-cron";
 import { SyllabusWorker } from "./workers/syllabusWorker";
 import feedbackRoutes from "./routes/feedback.routes";
+import adminRoutes from "./routes/admin.routes";
+import currentAffairsRoutes from "./routes/currentAffairs.routes";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -30,6 +37,8 @@ app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/test", testRoutes);
 app.use("/api/v1/onboarding", onboardingRoutes);
 app.use("/api/v1/feedback", feedbackRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/current-affairs", currentAffairsRoutes);
 
 createAppDataSource()
   .then(() => {

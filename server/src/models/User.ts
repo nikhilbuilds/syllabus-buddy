@@ -72,6 +72,9 @@ export class User {
   @Column({ nullable: true })
   resetTokenExpiry?: Date;
 
+  @Column({ default: false })
+  isAdmin!: boolean;
+
   @CreateDateColumn()
   createdAt!: Date;
 
