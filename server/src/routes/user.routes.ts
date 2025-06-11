@@ -8,6 +8,7 @@ import {
   resetPassword,
   logoutUser,
   resendVerificationEmail,
+  subscribe,
 } from "../controllers/user.controller";
 import { handleSocialLogin } from "../controllers/social.controller";
 
@@ -24,5 +25,7 @@ router.post("/logout", logoutUser);
 router.post("/resend-verification", authenticateToken, resendVerificationEmail);
 router.get("/profile", authenticateToken, getProfile);
 // router.put("/profile", authenticateToken, updateProfile);
+
+router.post("/subscribe", subscribe);
 
 export default router;

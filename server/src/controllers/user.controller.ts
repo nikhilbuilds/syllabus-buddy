@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { AppDataSource } from "../db/data-source";
 import { User } from "../models/User";
+import { Subscribe } from "../models/Subscribe";
 import { EmailService } from "../services/email.service";
 import crypto from "crypto";
 import { createLog } from "../services/log.service";
@@ -10,6 +11,41 @@ import { LogSource } from "../models/Log";
 import { MoreThan } from "typeorm";
 
 const userRepo = AppDataSource.getRepository(User);
+const subscribeRepo = AppDataSource.getRepository(Subscribe);
+
+export const subscribe = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400).json({ error: "Email is required" });
+    return;
+  }
+
+  // basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    res.status(400).json({ error: "Invalid email format" });
+    return;
+  }
+
+  try {
+    const existing = await subscribeRepo.findOneBy({ email });
+    if (existing) {
+      res.status(400).json({ error: "Email already subscribed" });
+      return;
+    }
+
+    const subscription = subscribeRepo.create({ email });
+    await subscribeRepo.save(subscription);
+
+    res.status(201).json({ message: "Subscribed successfully" });
+    return;
+  } catch (err) {
+    console.error("Subscribe error:", err);
+    res.status(500).json({ error: "Server error" });
+    return;
+  }
+};
 
 export const registerUser = async (req: Request, res: Response) => {
   const { email, password, name, dailyMinutes } = req.body;

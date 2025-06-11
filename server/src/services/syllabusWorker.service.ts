@@ -523,7 +523,7 @@ const sendLevelCompletionNotification = async (
   try {
     await PushNotificationService.sendPushNotification(
       user.id,
-      `Hi, ${level.toLowerCase()} Quizzes Ready! 🎉`,
+      `Hi, ${level.toLowerCase()} quizzes are ready! 🏃‍♂️`,
       `Your ${level.toLowerCase()} level quizzes are now available!`,
       { syllabusId: syllabusId.toString(), level }
     );
