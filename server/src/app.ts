@@ -36,6 +36,9 @@ app.get("/health", (req, res) => {
 app.get("/health-check", (req, res) => {
   res.status(200).send("OK");
 });
+app.get("/health-test", (req, res) => {
+  res.status(200).send("OK");
+});
 
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/syllabus", syllabusRoutes);
