@@ -29,6 +29,10 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/syllabus", syllabusRoutes);
 app.use("/api/v1/quiz", quizRoutes);
