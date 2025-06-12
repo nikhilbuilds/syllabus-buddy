@@ -48,3 +48,5 @@ node_modules/
 
 server/uploads/*
 !server/uploads/.gitkeep
+
+/server/dist
