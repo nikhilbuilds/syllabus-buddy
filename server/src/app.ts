@@ -22,7 +22,7 @@ dotenv.config();
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://www.syllabusbuddy.com",
     credentials: true,
   })
 );
