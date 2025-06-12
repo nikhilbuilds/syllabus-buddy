@@ -17,6 +17,7 @@ class OnboardingService {
       const response = await axiosInstance.post("/onboarding/register", data);
       return response.data;
     } catch (error: any) {
+      console.log("Registration error:=============>", JSON.stringify(error));
       throw new Error(
         error.response?.data?.error || error.message || "Registration failed"
       );

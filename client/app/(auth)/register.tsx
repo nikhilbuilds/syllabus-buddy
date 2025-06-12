@@ -17,10 +17,10 @@ import { darkTheme } from "@/constants/theme";
 
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
-    email: "",
-    name: "",
-    password: "",
-    confirmPassword: "",
+    email: "devnikhil0306@gmail.com",
+    name: "Nikhil",
+    password: "123456",
+    confirmPassword: "123456",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});

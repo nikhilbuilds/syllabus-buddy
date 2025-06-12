@@ -3,7 +3,7 @@ import { API_URL } from "./api";
 import { router } from "expo-router";
 
 const axiosInstance = axios.create({
-  baseURL: API_URL,
+  baseURL: `${"https://api.syllabusbuddy.com"}/api/v1`,
   headers: {
     "Content-Type": "application/json",
   },

@@ -9,7 +9,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  synchronize: false, // disable in prod!
+  synchronize: true, // disable in prod!
   entities: [__dirname + "/models/**/*.js"],
   ssl: {
     rejectUnauthorized: false,
