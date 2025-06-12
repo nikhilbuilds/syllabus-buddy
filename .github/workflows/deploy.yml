@@ -3,29 +3,28 @@ name: Deploy to Elastic Beanstalk
 on:
   push:
     branches:
-      - main # or master
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server # 👈 this ensures all steps run from `server/`
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-
       - name: Install dependencies
         run: npm install
 
-      - name: Build (if TypeScript)
+      - name: Build (TypeScript)
         run: npm run build
 
-      - name: Generate deployment zip
-        run: zip -r deploy.zip * .[^.]* -x "node_modules/*"
+      - name: Zip for deployment
+        run: zip -r ../deploy.zip * .[^.]* -x "node_modules/*"
 
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v21
