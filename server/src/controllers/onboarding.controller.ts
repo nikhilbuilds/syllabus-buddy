@@ -40,8 +40,11 @@ export const initiateRegistration = async (req: Request, res: Response) => {
     await userRepo.save(user);
 
     // Send verification email
-    const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${emailVerificationToken}`;
-    await EmailService.sendVerificationEmail(email, name, verificationLink);
+    await EmailService.sendVerificationEmail(
+      email,
+      name,
+      emailVerificationToken
+    );
 
     res.status(201).json({
       success: true,
