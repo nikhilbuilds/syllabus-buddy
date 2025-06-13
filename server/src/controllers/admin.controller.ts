@@ -20,7 +20,18 @@ export const getUser = async (req: Request, res: Response) => {
     res.status(400).json({ error: "User not found" });
     return;
   }
-  const user = await userRepo.findOneBy({ id: userId });
+  const user = await userRepo.findOne({
+    where: { id: userId },
+    select: [
+      "id",
+      "email",
+      "name",
+      "isEmailVerified",
+      "isOnboardingComplete",
+      "preferredLanguage",
+      "isAdmin",
+    ],
+  });
 
   res.json({ user });
 };
