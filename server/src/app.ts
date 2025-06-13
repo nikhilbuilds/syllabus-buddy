@@ -17,6 +17,7 @@ import { SyllabusWorker } from "./workers/syllabusWorker";
 import feedbackRoutes from "./routes/feedback.routes";
 import adminRoutes from "./routes/admin.routes";
 import currentAffairsRoutes from "./routes/currentAffairs.routes";
+import { logInfo, logError } from "./utils/logger";
 dotenv.config();
 
 const app = express();
@@ -30,14 +31,25 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.get("/health", (req, res) => {
+  logInfo("Health check endpoint called");
   res.status(200).send("OK");
 });
 
 app.get("/health-check", (req, res) => {
   res.status(200).send("OK");
 });
+
 app.get("/health-test", (req, res) => {
   res.status(200).send("OK");
+});
+
+app.get("/test-error", (req, res) => {
+  try {
+    throw new Error("Simulated failure");
+  } catch (err) {
+    logError("Test error route failed", err);
+    res.status(500).send("Something broke");
+  }
 });
 
 app.use("/api/v1/users", userRoutes);
