@@ -4,6 +4,7 @@ import {
   getUserDetails,
   getSystemStats,
   updateUserRole,
+  getUser,
 } from "../controllers/admin.controller";
 import {
   uploadCurrentAffairsPDF,
@@ -25,6 +26,8 @@ router.use(requireAuth);
 router.use(requireAdmin);
 
 // User management routes
+router.get("/user", getUser);
+
 router.get("/users", getAllUsers);
 router.get("/users/:userId", getUserDetails);
 router.patch("/users/:userId/role", updateUserRole);
