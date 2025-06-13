@@ -89,13 +89,13 @@ export const loginUser = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      res.status(400).json({ error: "Invalid credentials" });
+      res.status(400).json({ error: "Invalid email or password" });
       return;
     }
 
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) {
-      res.status(400).json({ error: "Invalid credentials" });
+      res.status(400).json({ error: "Invalid email or password" });
       return;
     }
 

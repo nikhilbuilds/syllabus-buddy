@@ -72,7 +72,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           router.replace("/(tabs)");
         }
       } else {
-        router.replace("/login");
+        // router.replace("/login");
       }
     }
   }, [session, isLoading, user]);
@@ -109,7 +109,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
         // Navigation will be handled by useEffect above
       }
     } catch (error) {
-      console.error("Sign in error:", error);
       throw error;
     } finally {
       setIsLoading(false);

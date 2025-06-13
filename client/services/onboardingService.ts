@@ -5,6 +5,7 @@ export interface RegistrationData {
   email: string;
   name: string;
   password: string;
+  pushToken: string;
 }
 
 export interface VerificationData {

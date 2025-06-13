@@ -79,13 +79,13 @@ export class NotificationService {
     });
   }
 
-  static async regeneratePushToken(): Promise<void> {
+  static async regeneratePushToken(): Promise<string | null> {
     try {
       // Request permissions first
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== "granted") {
         console.log("Notification permissions not granted");
-        return;
+        return null;
       }
 
       // Get the push token
@@ -94,8 +94,10 @@ export class NotificationService {
 
       // Store or send token to your backend if needed
       // await this.sendTokenToBackend(token);
+      return token;
     } catch (error) {
       console.error("Error regenerating push token:", error);
+      return null;
     }
   }
 

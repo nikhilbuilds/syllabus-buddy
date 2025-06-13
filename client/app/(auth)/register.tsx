@@ -14,6 +14,7 @@ import {
 import { router } from "expo-router";
 import onboardingService from "../../services/onboardingService";
 import { darkTheme } from "@/constants/theme";
+import { NotificationService } from "@/services/notificationService";
 
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
@@ -57,10 +58,17 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
+      const newToken = await NotificationService.regeneratePushToken();
+      if (!newToken) {
+        Alert.alert("Error", "FOR DEV - Failed to generate new token");
+        return;
+      }
+
       await onboardingService.initiateRegistration({
         email: formData.email,
         name: formData.name,
         password: formData.password,
+        pushToken: newToken,
       });
 
       Alert.alert(
