@@ -15,7 +15,7 @@ const progressRepo = AppDataSource.getRepository(UserProgress);
 const feedbackRepo = AppDataSource.getRepository(Feedback);
 
 export const getUser = async (req: Request, res: Response) => {
-  const userId = parseInt(req.body.userId);
+  const userId = parseInt((req as any).userId);
   if (!userId) {
     res.status(400).json({ error: "User not found" });
     return;
