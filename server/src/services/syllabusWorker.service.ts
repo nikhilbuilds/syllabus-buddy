@@ -1,29 +1,23 @@
-import fs from "fs";
-import pdfParse from "pdf-parse";
 import { AppDataSource } from "../db/data-source";
 import { Syllabus, SyllabusStatus, ProcessingStep } from "../models/Syllabus";
 import { Topic } from "../models/Topic";
 import { Quiz } from "../models/Quiz";
 import { QuizQuestion } from "../models/QuizQuestion";
 import { QuizLevel } from "../constants/quiz";
-import { openai } from "../config/openai";
 import { PushNotificationService } from "./pushNotification.service";
 import { EmailService } from "./email.service";
 import { User } from "../models/User";
-import { TextChunkingService, TextChunk } from "./textChunking.service";
 import { extractTopicsFromSyllabus } from "./topicParser.service";
 import { scheduleTopicsByDate } from "./scheduleTopicsByDate";
 import moment from "moment";
-import { generateQuiz, generateQuizWithRetry } from "./quizGenerator.service";
-import { getQuizQuestionCount } from "./generateQuizCount";
+import { generateQuizWithRetry } from "./quizGenerator.service";
 import { LogLevel, LogSource } from "../models/Log";
 import { LoggingService } from "./logging.service";
 import { extractTextFromFile } from "./llmTextExtractor.service";
-import { S3Service } from "./s3.service";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { URL } from "url";
 import { Readable } from "stream";
+import { logError, logInfo } from "../utils/logger";
 
 // Initialize S3 client
 const s3Client = new S3Client({
@@ -83,7 +77,11 @@ const processQuizzesForLevel = async (
     throw new Error("Syllabus not found");
   }
 
-  console.log("Processing quizzes for level", { level, topics, syllabus });
+  logInfo("Processing quizzes for level", {
+    level,
+    topics: topics.length,
+    syllabusId,
+  });
 
   // Check if this level is already processed
   const processingState = syllabus.processingState || {
@@ -100,7 +98,10 @@ const processQuizzesForLevel = async (
   }[level];
 
   if (isLevelProcessed) {
-    console.log(`Skipping ${level} quiz generation as it's already processed`);
+    logInfo(`Skipping ${level} quiz generation as it's already processed`, {
+      syllabusId,
+      level,
+    });
     return { quizzes: [], questions: [] };
   }
 
@@ -175,11 +176,17 @@ const processQuizzesForLevel = async (
       })
       .where("id = :syllabusId", { syllabusId })
       .execute();
+    logError("Error processing quizzes for level", {
+      syllabusId,
+      level,
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 };
 
 const initializeSyllabus = async (syllabusId: number): Promise<Syllabus> => {
+  logInfo("Initializing syllabus", { syllabusId });
   // First get the current syllabus state
 
   const existingSyllabus = await syllabusRepo
@@ -235,7 +242,10 @@ const initializeSyllabus = async (syllabusId: number): Promise<Syllabus> => {
 };
 
 const saveQuizData = async (quizzes: Quiz[], questions: QuizQuestion[]) => {
-  console.log("Saving quiz data", { quizzes, questions });
+  logInfo("Saving quiz data", {
+    quizzes: quizzes.length,
+    questions: questions.length,
+  });
   const savedQuizzes = await quizRepo.save(quizzes);
 
   const updatedQuestions = questions.map((q) => ({
@@ -251,7 +261,11 @@ const handleProcessingError = async (
   error: any,
   fileKey: string
 ) => {
-  console.error("Error processing syllabus:", error);
+  logError("Error processing syllabus", {
+    syllabusId,
+    error: error.message,
+    fileKey,
+  });
 
   // Update syllabus status
   await syllabusRepo.update(syllabusId, {
@@ -302,7 +316,7 @@ const getFileContent = async (filePath: string): Promise<Buffer> => {
 
     return Buffer.concat(chunks);
   } catch (error) {
-    console.error("Error reading file from S3:", error);
+    logError("Error reading file from S3", { filePath, error });
     throw error;
   }
 };
@@ -314,7 +328,11 @@ export const processSyllabus = async (
   fileKey?: string
 ): Promise<ProcessingResult> => {
   try {
-    console.log("Processing syllabus", { syllabusId, user, fileKey });
+    logInfo("Starting syllabus processing", {
+      syllabusId,
+      userId: user.id,
+      fileKey,
+    });
     // Initialize
     const syllabus = await initializeSyllabus(syllabusId);
 
@@ -420,7 +438,7 @@ export const processSyllabus = async (
         lastCompletedStep: ProcessingStep.TOPICS_SAVED,
       });
 
-      console.log("Topics=============>", topics);
+      logInfo(`Saved ${topics.length} topics`, { syllabusId });
     } else {
       // Get existing topics
       topics = await topicRepo.find({
@@ -436,7 +454,11 @@ export const processSyllabus = async (
         syllabusId
       );
 
-      console.log("Beginner result=============>", beginnerResult);
+      logInfo("Beginner quizzes processed", {
+        syllabusId,
+        quizzes: beginnerResult.quizzes.length,
+        questions: beginnerResult.questions.length,
+      });
 
       if (beginnerResult.quizzes.length > 0) {
         await saveQuizData(beginnerResult.quizzes, beginnerResult.questions);
@@ -458,6 +480,12 @@ export const processSyllabus = async (
         QuizLevel.INTERMEDIATE,
         syllabusId
       );
+
+      logInfo("Intermediate quizzes processed", {
+        syllabusId,
+        quizzes: intermediateResult.quizzes.length,
+        questions: intermediateResult.questions.length,
+      });
 
       if (intermediateResult.quizzes.length > 0) {
         await saveQuizData(
@@ -482,6 +510,12 @@ export const processSyllabus = async (
         syllabusId
       );
 
+      logInfo("Advanced quizzes processed", {
+        syllabusId,
+        quizzes: advancedResult.quizzes.length,
+        questions: advancedResult.questions.length,
+      });
+
       if (advancedResult.quizzes.length > 0) {
         await saveQuizData(advancedResult.quizzes, advancedResult.questions);
         await sendLevelCompletionNotification(
@@ -491,6 +525,11 @@ export const processSyllabus = async (
         );
       }
     }
+
+    logInfo("Syllabus processing completed", {
+      syllabusId,
+      topics: topics.length,
+    });
 
     // Finalize initial processing
     await syllabusRepo.update(syllabusId, {
@@ -535,6 +574,11 @@ const sendLevelCompletionNotification = async (
       level
     );
   } catch (err) {
-    console.error(`Notification error for ${level} level:`, err);
+    logError(`Notification error for ${level} level`, {
+      userId: user.id,
+      syllabusId,
+      level,
+      error: err,
+    });
   }
 };
