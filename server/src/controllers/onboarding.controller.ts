@@ -10,7 +10,7 @@ const userRepo = AppDataSource.getRepository(User);
 
 export const initiateRegistration = async (req: Request, res: Response) => {
   try {
-    const { email, name, password } = req.body;
+    const { email, name, password, pushToken } = req.body;
 
     // Check if user already exists
     const existingUser = await userRepo.findOne({ where: { email } });
@@ -35,6 +35,7 @@ export const initiateRegistration = async (req: Request, res: Response) => {
       emailVerificationExpires,
       isEmailVerified: false,
       isOnboardingComplete: false,
+      pushToken,
     });
 
     await userRepo.save(user);

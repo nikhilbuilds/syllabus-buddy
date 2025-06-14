@@ -118,7 +118,7 @@ const processQuizzesForLevel = async (
         topic.title,
         topic.summary,
         level,
-        15,
+        parseInt(process.env.QUIZ_QUESTION_COUNT) || 15,
         syllabus.preferredLanguage
       );
 

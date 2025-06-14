@@ -118,10 +118,10 @@ Make sure to generate at least ${questionCount} complete questions at the ${leve
 `;
 };
 
-const generateTopicPrompt = (
+export const generateTopicPrompt = (
   chunk: string,
-  preferences: string,
-  language: string
+  preferences?: string,
+  language?: string
 ) => {
   return `You are a syllabus parser. Given a messy or structured syllabus chunk, extract a **list of at least 12 clear and distinct topics or units** suitable for creating multiple-choice quizzes.
 
@@ -291,30 +291,28 @@ const generateQuizWithOpenAI = async (
   return questions;
 };
 
-const extractTopicsWithOpenAI = async (prompt: string): Promise<Topic[]> => {
-  const completion = await openai.chat.completions.create({
+const extractTopicsWithOpenAI = async (
+  systemPrompt: string,
+  chunk: string
+): Promise<Topic[]> => {
+  const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      {
-        role: "system",
-        content:
-          "You are a syllabus parser. Always provide complete, valid JSON responses with all required fields filled. Never leave any field empty or undefined.",
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
+      { role: "system", content: systemPrompt },
+      { role: "user", content: chunk },
     ],
     temperature: 0.2,
     max_tokens: 8000,
   });
 
-  const content = completion.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("No content received from OpenAI");
-  }
+  const jsonText = response.choices[0].message?.content || "[]";
 
-  return parseAndValidateTopicResponse(content);
+  try {
+    const topics = parseAndValidateTopicResponse(jsonText);
+    return topics;
+  } catch (e) {
+    throw new Error(`Failed to parse topics from LLM output`);
+  }
 };
 
 const generateQuizWithGemini = async (
@@ -339,9 +337,16 @@ const generateQuizWithGemini = async (
   return questions;
 };
 
-const extractTopicsWithGemini = async (prompt: string): Promise<Topic[]> => {
+const extractTopicsWithGemini = async (
+  prompt: string,
+  chunk: string
+): Promise<Topic[]> => {
+  const systemPrompt =
+    prompt +
+    `\n\nUser: ${chunk} \n\n Only respond with valid JSON.
+`;
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-  const result = await model.generateContent(prompt);
+  const result = await model.generateContent(systemPrompt);
   const response = await result.response;
   const content = response.text();
 
@@ -427,7 +432,7 @@ export const extractTopicsWithFallback = async (
       logInfo(
         `Topic extraction attempt ${attempt}/${maxRetries + 1} with OpenAI`
       );
-      const topics = await extractTopicsWithOpenAI(prompt);
+      const topics = await extractTopicsWithOpenAI(prompt, chunk);
       logInfo(
         `Successfully extracted ${topics.length} topics with OpenAI on attempt ${attempt}`
       );
@@ -443,7 +448,7 @@ export const extractTopicsWithFallback = async (
   // Fallback to Gemini
   try {
     logInfo(`Falling back to Gemini for topic extraction`);
-    const topics = await extractTopicsWithGemini(prompt);
+    const topics = await extractTopicsWithGemini(prompt, chunk);
     logInfo(`Successfully extracted ${topics.length} topics with Gemini`);
     return topics;
   } catch (error) {
@@ -452,4 +457,103 @@ export const extractTopicsWithFallback = async (
   }
 
   throw lastError || new Error("Failed to extract topics after all fallbacks");
+};
+
+export const extractTopicsWithGpt4Turbo = async (
+  chunk: string
+): Promise<Topic[]> => {
+  const model = "gpt-4-turbo";
+  try {
+    logInfo(`Requesting topics from ${model}`);
+    const prompt = generateTopicPrompt(chunk);
+    const response = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content: chunk },
+      ],
+      temperature: 0.3,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    return parseAndValidateTopicResponse(content);
+  } catch (error) {
+    logError(`Error with ${model}:`, { error });
+    throw error;
+  }
+};
+
+export const extractTopicsWithGpt4oMini = async (
+  chunk: string
+): Promise<Topic[]> => {
+  const model = "gpt-4o-mini";
+  const prompt = generateTopicPrompt(chunk);
+
+  try {
+    logInfo(`Requesting topics from ${model}`);
+    const response = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content: chunk },
+      ],
+      temperature: 0.3,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    return parseAndValidateTopicResponse(content);
+  } catch (error) {
+    logError(`Error with ${model}:`, { error });
+    throw error;
+  }
+};
+
+export const extractTopicsWithGemini15Pro = async (
+  chunk: string
+): Promise<Topic[]> => {
+  const modelName = "gemini-1.5-pro-latest";
+  try {
+    logInfo(`Requesting topics from ${modelName}`);
+    const prompt = generateTopicPrompt(chunk);
+    const systemPrompt =
+      prompt + `\n\nUser: ${chunk} \n\n Only respond with valid JSON.`;
+    const model = genAI.getGenerativeModel({ model: modelName });
+    const result = await model.generateContent(systemPrompt);
+    const response = await result.response;
+    const content = response.text();
+
+    return parseAndValidateTopicResponse(content);
+  } catch (error) {
+    logError(`Error with ${modelName}:`, { error });
+    throw error;
+  }
+};
+
+export const extractTopicsWithGemini15Flash = async (
+  chunk: string
+): Promise<Topic[]> => {
+  const modelName = "gemini-1.5-flash-latest";
+  try {
+    logInfo(`Requesting topics from ${modelName}`);
+    const model = genAI.getGenerativeModel({ model: modelName });
+    const prompt = generateTopicPrompt(chunk);
+    const systemPrompt =
+      prompt + `\n\nUser: ${chunk} \n\n Only respond with valid JSON.`;
+    const result = await model.generateContent(systemPrompt);
+    const response = await result.response;
+    const content = response.text();
+
+    return parseAndValidateTopicResponse(content);
+  } catch (error) {
+    logError(`Error with ${modelName}:`, { error });
+    throw error;
+  }
 };

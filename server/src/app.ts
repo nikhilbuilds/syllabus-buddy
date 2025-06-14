@@ -21,12 +21,28 @@ import { logInfo, logError } from "./utils/logger";
 dotenv.config();
 
 const app = express();
-app.use(
-  cors({
-    origin: ["https://www.syllabusbuddy.com", "http://localhost:3000"],
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // In development, allow all origins for easier testing.
+    // For production, you should have a strict whitelist.
+    if (process.env.NODE_ENV === "development") {
+      return callback(null, true);
+    }
+    // Whitelist for production
+    const whitelist = [
+      "https://www.syllabusbuddy.com",
+      "http://localhost:3000",
+    ];
+    if (whitelist.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 

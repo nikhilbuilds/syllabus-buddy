@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
 import { EmailService } from "../services/email.service";
 import { NotificationService } from "../services/notification.service";
-import { NotificationType, NotificationChannel } from "../models/Notification";
 import { PushNotificationService } from "../services/pushNotification.service";
 import { AppDataSource } from "../db/data-source";
 import { UserProgress } from "../models/UserProgress";
 import { StreakService } from "../services/streak.service";
+import * as llmService from "../services/llm.service";
+import { extractTextFromFile } from "../services/llmTextExtractor.service";
+import { getFileContent } from "../services/getFileContent.service";
+import PdfParse from "pdf-parse";
 
 export const testEmail = async (req: Request, res: Response) => {
   try {
@@ -174,5 +177,177 @@ export const clearTestProgress = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("Clear test progress failed:", error);
     res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const testGpt4Turbo = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    let rawText = "";
+    const file = (req as any).file;
+
+    // First try direct parsing for PDF and text files
+    if (file.mimetype === "application/pdf") {
+      const fileBuffer = await getFileContent(file.location);
+      const parsed = await PdfParse(fileBuffer);
+      rawText = parsed.text.replace(/\x00/g, "").trim();
+    } else if (file.mimetype === "text/plain") {
+      rawText = file.buffer.toString("utf-8").replace(/\x00/g, "").trim();
+    }
+
+    // If direct parsing failed or for images, use LLM extraction
+    if (!rawText || rawText.length < 50) {
+      console.log("Using LLM for text extraction...");
+      rawText = await extractTextFromFile(file.buffer, file.mimetype);
+    }
+
+    // Final validation of extracted text
+    if (!rawText || rawText.length < 50) {
+      res.status(400).json({
+        success: false,
+        message:
+          "Could not extract meaningful text from the file. Please try a different file.",
+      });
+      return;
+    }
+
+    const result = await llmService.extractTopicsWithGpt4Turbo(rawText);
+
+    res.status(200).json({ model: "gpt-4-turbo", result });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const testGemini15Pro = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    let rawText = "";
+    const file = (req as any).file;
+
+    // First try direct parsing for PDF and text files
+    if (file.mimetype === "application/pdf") {
+      const fileBuffer = await getFileContent(file.location);
+      const parsed = await PdfParse(fileBuffer);
+      rawText = parsed.text.replace(/\x00/g, "").trim();
+    } else if (file.mimetype === "text/plain") {
+      rawText = file.buffer.toString("utf-8").replace(/\x00/g, "").trim();
+    }
+
+    // If direct parsing failed or for images, use LLM extraction
+    if (!rawText || rawText.length < 50) {
+      console.log("Using LLM for text extraction...");
+      rawText = await extractTextFromFile(file.buffer, file.mimetype);
+    }
+
+    // Final validation of extracted text
+    if (!rawText || rawText.length < 50) {
+      res.status(400).json({
+        success: false,
+        message:
+          "Could not extract meaningful text from the file. Please try a different file.",
+      });
+      return;
+    }
+
+    const result = await llmService.extractTopicsWithGemini15Pro(rawText);
+
+    res.status(200).json({ model: "gemini-1.5-pro", result });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const testGemini15Flash = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    let rawText = "";
+    const file = (req as any).file;
+
+    // First try direct parsing for PDF and text files
+    if (file.mimetype === "application/pdf") {
+      const fileBuffer = await getFileContent(file.location);
+      const parsed = await PdfParse(fileBuffer);
+      rawText = parsed.text.replace(/\x00/g, "").trim();
+    } else if (file.mimetype === "text/plain") {
+      rawText = file.buffer.toString("utf-8").replace(/\x00/g, "").trim();
+    }
+
+    // If direct parsing failed or for images, use LLM extraction
+    if (!rawText || rawText.length < 50) {
+      console.log("Using LLM for text extraction...");
+      rawText = await extractTextFromFile(file.buffer, file.mimetype);
+    }
+
+    // Final validation of extracted text
+    if (!rawText || rawText.length < 50) {
+      res.status(400).json({
+        success: false,
+        message:
+          "Could not extract meaningful text from the file. Please try a different file.",
+      });
+      return;
+    }
+
+    const result = await llmService.extractTopicsWithGemini15Flash(rawText);
+
+    res.status(200).json({ model: "gemini-1.5-flash", result });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const testGpt4oMini = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    let rawText = "";
+    const file = (req as any).file;
+
+    // First try direct parsing for PDF and text files
+    if (file.mimetype === "application/pdf") {
+      const fileBuffer = await getFileContent(file.location);
+      const parsed = await PdfParse(fileBuffer);
+      rawText = parsed.text.replace(/\x00/g, "").trim();
+    } else if (file.mimetype === "text/plain") {
+      rawText = file.buffer.toString("utf-8").replace(/\x00/g, "").trim();
+    }
+
+    // If direct parsing failed or for images, use LLM extraction
+    if (!rawText || rawText.length < 50) {
+      console.log("Using LLM for text extraction...");
+      rawText = await extractTextFromFile(file.buffer, file.mimetype);
+    }
+
+    // Final validation of extracted text
+    if (!rawText || rawText.length < 50) {
+      res.status(400).json({
+        success: false,
+        message:
+          "Could not extract meaningful text from the file. Please try a different file.",
+      });
+      return;
+    }
+
+    const result = await llmService.extractTopicsWithGpt4oMini(rawText);
+
+    res.status(200).json({ model: "gpt-4o-mini", result });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

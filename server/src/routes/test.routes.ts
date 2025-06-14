@@ -8,11 +8,17 @@ import {
   testStreakCalculation,
   createTestProgress,
   clearTestProgress,
+  testGpt4Turbo,
+  testGemini15Pro,
+  testGemini15Flash,
+  testGpt4oMini,
 } from "../controllers/test.controller";
 import { requireAuth } from "../middlewares/auth.middleware";
 import { StreakService } from "../services/streak.service";
 import { Request, Response } from "express";
 import { StreakMonitorService } from "../services/streakMonitor.service";
+import { upload } from "../config/multer.config";
+import uploadMiddleware from "../middleware/upload.middleware";
 
 const router = Router();
 
@@ -70,5 +76,18 @@ router.post(
     }
   }
 );
+
+router.post("/gpt-4-turbo", uploadMiddleware.single("file"), testGpt4Turbo);
+router.post(
+  "/gemini-1.5-pro",
+  uploadMiddleware.single("file"),
+  testGemini15Pro
+);
+router.post(
+  "/gemini-1.5-flash",
+  uploadMiddleware.single("file"),
+  testGemini15Flash
+);
+router.post("/gpt-4o-mini", uploadMiddleware.single("file"), testGpt4oMini);
 
 export default router;
