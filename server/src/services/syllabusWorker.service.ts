@@ -15,7 +15,6 @@ import { LogLevel, LogSource } from "../models/Log";
 import { LoggingService } from "./logging.service";
 import { extractTextFromFile } from "./llmTextExtractor.service";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { URL } from "url";
 import { Readable } from "stream";
 import { logError, logInfo } from "../utils/logger";
 

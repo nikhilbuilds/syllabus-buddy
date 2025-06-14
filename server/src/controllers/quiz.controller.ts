@@ -6,7 +6,6 @@ import { QuizQuestion } from "../models/QuizQuestion";
 import { generateQuizWithRetry } from "../services/quizGenerator.service";
 import { QuizLevel } from "../constants/quiz";
 import { getQuizQuestionCount } from "../services/generateQuizCount";
-import { LanguageCodes } from "../constants/languages";
 
 const topicRepo = AppDataSource.getRepository(Topic);
 const quizRepo = AppDataSource.getRepository(Quiz);

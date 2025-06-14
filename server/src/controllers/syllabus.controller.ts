@@ -166,7 +166,7 @@ export const uploadSyllabusQueue = async (req: Request, res: Response) => {
       );
 
       // Enqueue the syllabus for processing
-      await SyllabusQueueService.enqueueSyllabusProcessing({
+      SyllabusQueueService.enqueueSyllabusProcessing({
         syllabusId: syllabus.id,
         user,
         filePath: file.key,
