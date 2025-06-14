@@ -165,32 +165,107 @@ Important:
 `;
 };
 
-const parseAndValidateQuizResponse = (content: string): QuizQuestion[] => {
-  const safeJson = repairBrokenJson(content);
+const repairQuizJsonWithGemini = async (
+  malformedContent: string
+): Promise<string> => {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const repairPrompt = `This content is malformed JSON or is missing required fields. Please return a valid JSON array where each object includes: question, options (with A-D), answer (A-D), and explanation. Do not leave any field blank. Return only the corrected JSON array.
 
-  let rawData: unknown;
-  try {
-    // rawData = JSON.parse(safeJson);
-    const repairedJson = jsonrepair(safeJson);
-    rawData = JSON.parse(repairedJson);
-  } catch (parseError) {
-    logError("Even repaired JSON failed to parse", {
-      error: parseError,
-      content: safeJson,
-    });
-    throw new Error("Failed to parse even repaired JSON.");
+Broken content:
+\`\`\`json
+${malformedContent}
+\`\`\`
+`;
+  logInfo("Attempting to repair malformed quiz JSON with Gemini.");
+  const result = await model.generateContent(repairPrompt);
+  const response = await result.response;
+  const repairedText = response.text();
+
+  if (!repairedText) {
+    throw new Error("LLM returned empty content during repair.");
   }
 
-  // Use zod schema to validate structure
-  const parsed = quizArraySchema.safeParse(rawData);
-  if (!parsed.success) {
-    logError("Zod validation failed", parsed.error.format());
-    throw new Error("Invalid quiz structure");
+  // Clean up ```json markdown
+  let cleanedContent = repairedText.trim();
+  if (cleanedContent.startsWith("```json")) {
+    cleanedContent = cleanedContent
+      .replace(/^```json\s*/, "")
+      .replace(/\s*```$/, "");
+  } else if (cleanedContent.startsWith("```")) {
+    cleanedContent = cleanedContent
+      .replace(/^```\s*/, "")
+      .replace(/\s*```$/, "");
   }
 
-  const validQuestions: QuizQuestion[] = parsed.data as QuizQuestion[];
+  return cleanedContent;
+};
 
-  return validQuestions;
+export const parseAndValidateQuizResponse = async (
+  content: string,
+  maxRetries: number = 2
+): Promise<QuizQuestion[]> => {
+  let currentContent = content;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // First, use the lightweight repair function
+      const safeJson = repairBrokenJson(currentContent);
+      const repairedJson = jsonrepair(safeJson);
+      const rawData = JSON.parse(repairedJson);
+
+      const parsed = quizArraySchema.safeParse(rawData);
+
+      if (parsed.success) {
+        if (parsed.data.length > 0) {
+          logInfo(
+            `Successfully parsed and validated ${
+              parsed.data.length
+            } questions on attempt ${attempt + 1}.`
+          );
+          return parsed.data as QuizQuestion[];
+        } else {
+          lastError = new Error(
+            "LLM returned a valid but empty array of questions."
+          );
+          logError(lastError.message, { attempt: attempt + 1 });
+        }
+      } else {
+        lastError = new Error("Zod validation failed.");
+        logError("Zod validation failed", {
+          error: parsed.error.format(),
+          attempt: attempt + 1,
+        });
+      }
+    } catch (parseError) {
+      lastError = parseError as Error;
+      logError(`JSON parsing failed on attempt ${attempt + 1}`, {
+        error: lastError,
+      });
+    }
+
+    if (attempt < maxRetries) {
+      logInfo(`Attempting LLM repair #${attempt + 1} of ${maxRetries}.`);
+      try {
+        currentContent = await repairQuizJsonWithGemini(currentContent);
+      } catch (repairError) {
+        logError(`LLM repair attempt ${attempt + 1} failed.`, {
+          error: repairError,
+        });
+        throw (
+          repairError ||
+          new Error("Failed to parse quiz and LLM repair also failed.")
+        );
+      }
+    }
+  }
+
+  throw (
+    lastError ||
+    new Error(
+      `Failed to parse and validate quiz response after ${maxRetries} retries.`
+    )
+  );
 };
 
 const parseAndValidateTopicResponse = (content: string): Topic[] => {
@@ -275,7 +350,7 @@ const generateQuizWithOpenAI = async (
     throw new Error("No content received from OpenAI");
   }
 
-  const questions = parseAndValidateQuizResponse(content);
+  const questions = await parseAndValidateQuizResponse(content);
   if (questions.length < questionCount * 0.7) {
     throw new Error(
       `Only generated ${questions.length}/${questionCount} valid questions.`
@@ -321,7 +396,7 @@ const generateQuizWithGemini = async (
     throw new Error("No content received from Gemini");
   }
 
-  const questions = parseAndValidateQuizResponse(content);
+  const questions = await parseAndValidateQuizResponse(content);
   if (questions.length < questionCount * 0.7) {
     throw new Error(
       `Only generated ${questions.length}/${questionCount} valid questions.`
