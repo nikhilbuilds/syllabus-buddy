@@ -3,6 +3,9 @@ import OpenAI from "openai";
 import { QuizLevel } from "../constants/quiz";
 import { logError, logInfo } from "../utils/logger";
 import { LanguageCodes } from "../constants/languages";
+import { repairBrokenJson } from "../utils/repairBrokenJson";
+import { quizArraySchema } from "../utils/quizArraySchema"; // Path to your schema file
+import { jsonrepair } from "jsonrepair";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -10,7 +13,7 @@ const openai = new OpenAI({
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-interface QuizQuestion {
+export interface QuizQuestion {
   question: string;
   options: {
     A: string;
@@ -80,7 +83,7 @@ ${
 }
 
 IMPORTANT REQUIREMENTS:
-1. Each question MUST have ALL of the following fields: question, options, answer, explanation, and level.
+1. Each question MUST have ONLY the following fields: question, options, answer, and explanation.
 2. The "answer" field must be exactly one of: "A", "B", "C", or "D".
 3. All options (A, B, C, D) must be filled with meaningful content.
 4. The explanation must be detailed and educational.
@@ -163,41 +166,29 @@ Important:
 };
 
 const parseAndValidateQuizResponse = (content: string): QuizQuestion[] => {
-  let cleanedContent = content.trim();
+  const safeJson = repairBrokenJson(content);
 
-  if (cleanedContent.startsWith("```json")) {
-    cleanedContent = cleanedContent
-      .replace(/^```json\s*/, "")
-      .replace(/\s*```$/, "");
-  } else if (cleanedContent.startsWith("```")) {
-    cleanedContent = cleanedContent
-      .replace(/^```\s*/, "")
-      .replace(/\s*```$/, "");
-  }
-
-  let quizData: any[];
+  let rawData: unknown;
   try {
-    quizData = JSON.parse(cleanedContent);
+    // rawData = JSON.parse(safeJson);
+    const repairedJson = jsonrepair(safeJson);
+    rawData = JSON.parse(repairedJson);
   } catch (parseError) {
-    logError("JSON Parse Error:", {
+    logError("Even repaired JSON failed to parse", {
       error: parseError,
-      content: cleanedContent,
+      content: safeJson,
     });
-    throw new Error("Invalid JSON response from AI");
+    throw new Error("Failed to parse even repaired JSON.");
   }
 
-  if (!Array.isArray(quizData)) {
-    throw new Error("Response is not an array");
+  // Use zod schema to validate structure
+  const parsed = quizArraySchema.safeParse(rawData);
+  if (!parsed.success) {
+    logError("Zod validation failed", parsed.error.format());
+    throw new Error("Invalid quiz structure");
   }
 
-  const validQuestions: QuizQuestion[] = [];
-  quizData.forEach((q, i) => {
-    if (validateQuizQuestion(q)) {
-      validQuestions.push(q);
-    } else {
-      logError("Invalid question format", { index: i, question: q });
-    }
-  });
+  const validQuestions: QuizQuestion[] = parsed.data as QuizQuestion[];
 
   return validQuestions;
 };
@@ -215,9 +206,11 @@ const parseAndValidateTopicResponse = (content: string): Topic[] => {
       .replace(/\s*```$/, "");
   }
 
-  let topicData: any[];
+  let topicData: any[] = [];
   try {
-    topicData = JSON.parse(cleanedContent);
+    // topicData = JSON.parse(cleanedContent);
+    const repairedJson = jsonrepair(cleanedContent);
+    topicData = JSON.parse(repairedJson);
   } catch (parseError) {
     // Try to salvage as many objects as possible
     const objects: any[] = [];
