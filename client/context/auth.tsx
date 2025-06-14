@@ -108,7 +108,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setUser(response.data.user);
         // Navigation will be handled by useEffect above
       }
-    } catch (error) {
+    } catch (error: any) {
       throw error;
     } finally {
       setIsLoading(false);

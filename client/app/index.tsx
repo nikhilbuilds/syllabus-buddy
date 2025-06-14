@@ -1,24 +1,15 @@
 import { useAuth } from "@/context/auth";
-import { View, Text, StyleSheet } from "react-native";
 import { LoadingScreen } from "@/components/loading-screen";
+import { router } from "expo-router";
+import { useEffect } from "react";
 export default function HomeScreen() {
   const { isLoading } = useAuth();
 
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
+  useEffect(() => {
+    if (!isLoading) {
+      router.replace("/login");
+    }
+  }, [isLoading]);
 
-  return (
-    <View style={styles.container}>
-      <Text>Welcome to Syllabus Buddy</Text>
-    </View>
-  );
+  return <LoadingScreen />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});
