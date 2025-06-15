@@ -69,7 +69,7 @@ const generateQuizPrompt = (
   topicTitle: string,
   syllabusContext?: string,
   level?: QuizLevel,
-  questionCount: number = 15,
+  questionCount: number = 20,
   language?: string
 ) => {
   const languageName = LanguageCodes[language as keyof typeof LanguageCodes];
@@ -624,4 +624,125 @@ export const extractTopicsWithGemini15Flash = async (
     logError(`Error with ${modelName}:`, { error });
     throw error;
   }
+};
+
+export const generateQuizWithGpt4oMini = async (
+  title: string,
+  descriptions: string,
+  level: QuizLevel
+): Promise<QuizQuestion[]> => {
+  const model = "gpt-4o-mini";
+
+  const prompt = generateQuizPrompt(title, descriptions, level);
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an expert quiz generator. Always provide complete, valid JSON responses with all required fields filled. Never leave any field empty or undefined.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.7,
+    max_tokens: 8000,
+  });
+
+  const content = completion.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("No content received from OpenAI");
+  }
+
+  const questions = await parseAndValidateQuizResponse(content);
+
+  return questions;
+};
+
+export const generateQuizWithGpt4Turbo = async (
+  title: string,
+  descriptions: string,
+  level: QuizLevel
+): Promise<QuizQuestion[]> => {
+  const model = "gpt-4-turbo";
+  logInfo(`Generating quiz with ${model}`);
+
+  const prompt = generateQuizPrompt(title, descriptions, level);
+
+  const completion = await openai.chat.completions.create({
+    model,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an expert quiz generator. Always provide complete, valid JSON responses with all required fields filled. Never leave any field empty or undefined.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.7,
+    max_tokens: 4000,
+  });
+
+  const content = completion.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("No content received from OpenAI");
+  }
+
+  const questions = await parseAndValidateQuizResponse(content);
+
+  return questions;
+};
+
+export const generateQuizWithGemini15Flash = async (
+  title: string,
+  descriptions: string,
+  level: QuizLevel
+): Promise<QuizQuestion[]> => {
+  const modelName = "gemini-1.5-flash";
+  logInfo(`Generating quiz with ${modelName}`);
+
+  const prompt = generateQuizPrompt(title, descriptions, level);
+
+  const model = genAI.getGenerativeModel({ model: modelName });
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const content = response.text();
+
+  if (!content) {
+    throw new Error("No content received from Gemini");
+  }
+
+  const questions = await parseAndValidateQuizResponse(content);
+
+  return questions;
+};
+
+export const generateQuizWithGemini15Pro = async (
+  title: string,
+  descriptions: string,
+  level: QuizLevel
+): Promise<QuizQuestion[]> => {
+  const modelName = "gemini-1.5-pro-latest";
+  logInfo(`Generating quiz with ${modelName}`);
+
+  const prompt = generateQuizPrompt(title, descriptions, level);
+
+  const model = genAI.getGenerativeModel({ model: modelName });
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const content = response.text();
+
+  if (!content) {
+    throw new Error("No content received from Gemini");
+  }
+
+  const questions = await parseAndValidateQuizResponse(content);
+
+  return questions;
 };

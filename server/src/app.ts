@@ -32,6 +32,7 @@ const corsOptions = {
     const whitelist = [
       "https://www.syllabusbuddy.com",
       "http://localhost:3000",
+      "https://api.syllabusbuddy.com",
     ];
     if (whitelist.indexOf(origin) !== -1 || !origin) {
       callback(null, true);

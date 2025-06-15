@@ -351,3 +351,51 @@ export const testGpt4oMini = async (req: Request, res: Response) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const testGpt4oMiniQuiz = async (req: Request, res: Response) => {
+  const { title, descriptions, level } = req.body;
+
+  const quiz = await llmService.generateQuizWithGpt4oMini(
+    title,
+    descriptions,
+    level
+  );
+
+  res.status(200).json({ quiz, totalQuestions: quiz.length });
+};
+
+export const testGpt4TurboQuiz = async (req: Request, res: Response) => {
+  const { title, descriptions, level } = req.body;
+
+  const quiz = await llmService.generateQuizWithGpt4Turbo(
+    title,
+    descriptions,
+    level
+  );
+
+  res.status(200).json({ quiz, totalQuestions: quiz.length });
+};
+
+export const testGemini15ProQuiz = async (req: Request, res: Response) => {
+  const { title, descriptions, level } = req.body;
+
+  const quiz = await llmService.generateQuizWithGemini15Pro(
+    title,
+    descriptions,
+    level
+  );
+
+  res.status(200).json({ quiz, totalQuestions: quiz.length });
+};
+
+export const testGemini15FlashQuiz = async (req: Request, res: Response) => {
+  const { title, descriptions, level } = req.body;
+
+  const quiz = await llmService.generateQuizWithGemini15Flash(
+    title,
+    descriptions,
+    level
+  );
+
+  res.status(200).json({ quiz, totalQuestions: quiz.length });
+};

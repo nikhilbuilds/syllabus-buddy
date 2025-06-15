@@ -12,6 +12,10 @@ import {
   testGemini15Pro,
   testGemini15Flash,
   testGpt4oMini,
+  testGpt4TurboQuiz,
+  testGemini15ProQuiz,
+  testGemini15FlashQuiz,
+  testGpt4oMiniQuiz,
 } from "../controllers/test.controller";
 import { requireAuth } from "../middlewares/auth.middleware";
 import { StreakService } from "../services/streak.service";
@@ -89,5 +93,10 @@ router.post(
   testGemini15Flash
 );
 router.post("/gpt-4o-mini", uploadMiddleware.single("file"), testGpt4oMini);
+
+router.post("/quiz/gpt-4o-mini", testGpt4oMiniQuiz);
+router.post("/quiz/gpt-4-turbo", testGpt4TurboQuiz);
+router.post("/quiz/gemini-1.5-pro", testGemini15ProQuiz);
+router.post("/quiz/gemini-1.5-flash", testGemini15FlashQuiz);
 
 export default router;
